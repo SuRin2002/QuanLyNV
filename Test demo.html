@@ -1,0 +1,2018 @@
+<!DOCTYPE html>
+<html lang="vi" class="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title id="app-title">Hệ Thống Quản Lý & Đánh Giá Nhân Viên</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+    }
+  </script>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <style id="custom-theme-styles">
+    @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Inter:wght@400;500;600;700&family=Be+Vietnam+Pro:wght@400;500;600;700&family=Lexend:wght@400;500;600;700&family=Montserrat:wght@400;600;700&family=Roboto:wght@400;500;700&display=swap');
+    
+    :root {
+      --bg-custom-image: none;
+      --font-family: 'Plus Jakarta Sans', sans-serif;
+      --base-font-size: 14px;
+    }
+
+    body { 
+      font-family: var(--font-family); 
+      font-size: var(--base-font-size);
+    }
+
+    .custom-bg-overlay {
+      background-image: var(--bg-custom-image);
+      background-size: cover;
+      background-position: center;
+      background-attachment: fixed;
+    }
+
+    ::-webkit-scrollbar { width: 6px; height: 6px; }
+    .dark ::-webkit-scrollbar-track { background: #0f172a; }
+    .dark ::-webkit-scrollbar-thumb { background: #334155; border-radius: 4px; }
+    html:not(.dark) ::-webkit-scrollbar-track { background: #f1f5f9; }
+    html:not(.dark) ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 4px; }
+
+    .btn-fixed-layout {
+      display: inline-flex !important;
+      align-items: center !important;
+      justify-content: center !important;
+      white-space: nowrap !important;
+      padding-left: 1.25rem !important;
+      padding-right: 1.25rem !important;
+      padding-top: 0.625rem !important;
+      padding-bottom: 0.625rem !important;
+      border-radius: 0.875rem !important;
+      font-weight: 700 !important;
+      letter-spacing: -0.01em !important;
+      gap: 0.5rem !important;
+      box-sizing: border-box !important;
+    }
+
+    @keyframes slideInRight {
+      from { transform: translateX(100%); opacity: 0; }
+      to { transform: translateX(0); opacity: 1; }
+    }
+    .animate-toast {
+      animation: slideInRight 0.3s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+    }
+
+    @media print {
+      body * { visibility: hidden; }
+      #print-preview-content, #print-preview-content * { visibility: visible; }
+      #print-preview-content { 
+        position: absolute; 
+        left: 0; 
+        top: 0; 
+        width: 100%; 
+        background: white !important; 
+        color: black !important; 
+        display: block !important; 
+      }
+      .print-signature-container {
+        display: flex !important;
+        justify-content: space-between !important;
+        padding-left: 4rem !important;
+        padding-right: 4rem !important;
+        margin-top: 2.5rem !important;
+      }
+    }
+  </style>
+</head>
+<body class="h-screen flex flex-col antialiased overflow-hidden selection:bg-emerald-500 selection:text-white custom-bg-overlay relative bg-slate-100 text-slate-800 dark:bg-slate-950 dark:text-slate-100">
+
+  <!-- TOAST NOTIFICATION CONTAINER -->
+  <div id="toast-container" class="fixed top-5 right-5 z-[200] flex flex-col gap-3 pointer-events-none max-w-sm w-full"></div>
+
+  <!-- BACKGROUND OVERLAY BLUR (ĐÃ GIẢM ĐỘ ĐỤC ĐỂ HIỂN THỊ RÕ ẢNH NỀN) -->
+  <div class="absolute inset-0 bg-slate-100/50 dark:bg-slate-950/65 backdrop-blur-[2px] z-0" id="bg-overlay"></div>
+
+  <!-- AUTH MODAL -->
+  <div id="auth-modal" class="fixed inset-0 bg-slate-900/40 dark:bg-slate-950/80 backdrop-blur-xl z-50 flex items-center justify-center p-4">
+    <div class="bg-white/95 dark:bg-slate-900/90 rounded-3xl shadow-2xl max-w-md w-full p-8 border border-slate-200 dark:border-slate-800 relative z-10 text-slate-900 dark:text-slate-100">
+      
+      <div class="absolute top-5 right-5">
+        <button onclick="toggleDarkMode()" class="w-10 h-10 rounded-xl bg-slate-200 dark:bg-slate-800 text-slate-700 dark:text-slate-300 flex items-center justify-center hover:scale-105 transition">
+          <i class="fa-solid fa-moon dark:hidden"></i>
+          <i class="fa-solid fa-sun hidden dark:inline text-amber-400"></i>
+        </button>
+      </div>
+
+      <div class="text-center mb-7">
+        <div class="inline-flex items-center justify-center w-16 h-16 bg-gradient-to-tr from-emerald-600 to-blue-600 text-white rounded-2xl mb-4 shadow-lg shadow-emerald-500/20">
+          <i class="fa-solid fa-layer-group text-2xl"></i>
+        </div>
+        <h2 id="login-company-name" class="text-sm font-bold tracking-tight">CÔNG TY TNHH MTV TM & DV ĐA TUẤN THÀNH</h2>
+        <p class="text-xs text-slate-500 dark:text-slate-400 mt-1 font-medium">Hệ thống phân quyền & đánh giá hiệu suất nhân sự</p>
+      </div>
+
+      <div class="flex bg-slate-100 dark:bg-slate-800/80 p-1 rounded-2xl mb-6 border border-slate-200 dark:border-slate-700/50">
+        <button id="tab-btn-login" onclick="switchAuthTab('login')" class="flex-1 py-2.5 text-xs font-bold rounded-xl transition-all duration-200 bg-emerald-600 text-white shadow-md">Đăng Nhập</button>
+        <button id="tab-btn-register" onclick="switchAuthTab('register')" class="flex-1 py-2.5 text-xs font-bold rounded-xl transition-all duration-200 text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200">Đăng Ký NV</button>
+      </div>
+
+      <!-- LOGIN FORM -->
+      <form id="login-form" onsubmit="handleLogin(event)" class="space-y-4">
+        <div>
+          <label class="block text-[11px] font-bold uppercase tracking-wider mb-2 text-slate-700 dark:text-slate-300">Mã NV / Tên Đăng Nhập</label>
+          <div class="relative">
+            <span class="absolute inset-y-0 left-0 pl-4 flex items-center text-slate-400 dark:text-slate-500"><i class="fa-solid fa-user text-xs"></i></span>
+            <input type="text" id="login-username" required autocomplete="username" placeholder="Nhập admin hoặc mã NV..." class="w-full pl-11 pr-4 py-3 text-xs rounded-2xl border border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/60 text-slate-900 dark:text-slate-100 focus:outline-none transition-all font-medium">
+          </div>
+        </div>
+        <div>
+          <label class="block text-[11px] font-bold uppercase tracking-wider mb-2 text-slate-700 dark:text-slate-300">Mật khẩu</label>
+          <div class="relative">
+            <span class="absolute inset-y-0 left-0 pl-4 flex items-center text-slate-400 dark:text-slate-500"><i class="fa-solid fa-lock text-xs"></i></span>
+            <input type="password" id="login-password" required autocomplete="current-password" placeholder="••••••••" class="w-full pl-11 pr-4 py-3 text-xs rounded-2xl border border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/60 text-slate-900 dark:text-slate-100 focus:outline-none transition-all font-medium">
+          </div>
+        </div>
+        <div class="flex items-center justify-between text-xs pt-1">
+          <label class="flex items-center cursor-pointer select-none font-medium text-slate-700 dark:text-slate-300">
+            <input type="checkbox" id="remember-me" class="rounded border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-emerald-500 mr-2.5 w-4 h-4"> Ghi nhớ tài khoản
+          </label>
+          <button type="button" onclick="openForgotPasswordModal()" class="text-emerald-600 dark:text-emerald-400 font-bold hover:underline">Quên mật khẩu?</button>
+        </div>
+        <button type="submit" class="w-full bg-gradient-to-r from-emerald-600 to-blue-600 hover:from-emerald-500 hover:to-blue-500 text-white font-bold py-3.5 rounded-2xl text-xs shadow-lg shadow-emerald-900/30 transition-all duration-300">Đăng nhập hệ thống</button>
+      </form>
+
+      <!-- REGISTER FORM -->
+      <form id="register-form" onsubmit="handleRegister(event)" class="space-y-3.5 hidden">
+        <div><label class="block text-[11px] font-bold uppercase mb-1.5 text-slate-700 dark:text-slate-300">Mã NV Mới</label><input type="text" id="reg-code" required placeholder="NV003" class="w-full px-4 py-2.5 text-xs rounded-2xl border border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/60 text-slate-900 dark:text-slate-100 focus:outline-none font-medium"></div>
+        <div><label class="block text-[11px] font-bold uppercase mb-1.5 text-slate-700 dark:text-slate-300">Họ và Tên</label><input type="text" id="reg-name" required placeholder="Nguyễn Văn A" class="w-full px-4 py-2.5 text-xs rounded-2xl border border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/60 text-slate-900 dark:text-slate-100 focus:outline-none font-medium"></div>
+        <div><label class="block text-[11px] font-bold uppercase mb-1.5 text-slate-700 dark:text-slate-300">Phòng Ban</label><select id="reg-dept" required class="w-full px-4 py-2.5 text-xs rounded-2xl border border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/60 text-slate-900 dark:text-slate-100 focus:outline-none font-medium"></select></div>
+        <div><label class="block text-[11px] font-bold uppercase mb-1.5 text-slate-700 dark:text-slate-300">Mật khẩu</label><input type="password" id="reg-pass" required placeholder="Mật khẩu khởi tạo" class="w-full px-4 py-2.5 text-xs rounded-2xl border border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/60 text-slate-900 dark:text-slate-100 focus:outline-none font-medium"></div>
+        <button type="submit" class="w-full bg-emerald-600 hover:bg-emerald-500 text-white font-bold py-3.5 rounded-2xl text-xs shadow-lg shadow-emerald-900/30 transition-all">Đăng Ký Tài Khoản</button>
+      </form>
+    </div>
+  </div>
+
+  <!-- MAIN APP CONTAINER -->
+  <div id="app" class="flex-1 flex flex-row hidden h-screen overflow-hidden relative z-10 text-slate-800 dark:text-slate-100">
+    
+    <!-- SIDEBAR -->
+    <aside class="w-72 bg-white/90 dark:bg-slate-900/95 backdrop-blur-xl text-slate-600 dark:text-slate-400 flex-shrink-0 flex flex-col border-r border-slate-200 dark:border-slate-800 h-full">
+      <div class="p-5 border-b border-slate-200 dark:border-slate-800 flex items-center justify-between">
+        <div class="flex items-center space-x-3.5 overflow-hidden">
+          <div class="w-10 h-10 bg-gradient-to-tr from-emerald-500 to-blue-600 text-white rounded-2xl flex items-center justify-center font-bold shadow-lg shadow-emerald-500/20 flex-shrink-0">
+            <i class="fa-solid fa-layer-group text-sm"></i>
+          </div>
+          <div class="overflow-hidden">
+            <h1 id="sidebar-company-name" class="font-bold text-slate-900 dark:text-white text-xs truncate tracking-tight">ĐA TUẤN THÀNH</h1>
+            <p class="text-[10px] text-slate-500 dark:text-slate-400 font-semibold tracking-wider uppercase mt-0.5">Hệ thống đánh giá hiệu suất</p>
+          </div>
+        </div>
+      </div>
+
+      <nav class="flex-1 px-3 py-4 space-y-1.5 overflow-y-auto">
+        <button onclick="switchTab('dashboard')" id="nav-dashboard" class="perm-view_dashboard w-full flex items-center space-x-3 px-4 py-3 rounded-2xl text-xs font-semibold transition-all bg-emerald-600 text-white shadow-lg shadow-emerald-600/20">
+          <i class="fa-solid fa-house w-4 text-center text-sm"></i><span>Tổng quan & Xếp hạng</span>
+        </button>
+        <button id="nav-analytics" onclick="switchTab('analytics')" class="perm-view_analytics w-full flex items-center space-x-3 px-4 py-3 rounded-2xl text-xs font-semibold transition-all hover:bg-slate-100 dark:hover:bg-slate-800/60 text-slate-700 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white">
+          <i class="fa-solid fa-chart-pie w-4 text-center text-sm"></i><span>Thống kê & Biểu đồ</span>
+        </button>
+        <button id="nav-users" onclick="switchTab('users')" class="perm-manage_permissions w-full flex items-center space-x-3 px-4 py-3 rounded-2xl text-xs font-semibold transition-all hover:bg-slate-100 dark:hover:bg-slate-800/60 text-slate-700 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white">
+          <i class="fa-solid fa-user-gear w-4 text-center text-sm"></i><span>Quản lý Nhân sự & Phân quyền</span>
+        </button>
+        <button id="nav-departments" onclick="switchTab('departments')" class="perm-view_departments w-full flex items-center space-x-3 px-4 py-3 rounded-2xl text-xs font-semibold transition-all hover:bg-slate-100 dark:hover:bg-slate-800/60 text-slate-700 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white">
+          <i class="fa-solid fa-sitemap w-4 text-center text-sm"></i><span>Quản lý Phòng ban</span>
+        </button>
+        <button id="nav-reviews" onclick="switchTab('reviews')" class="perm-view_all_reviews w-full flex items-center space-x-3 px-4 py-3 rounded-2xl text-xs font-semibold transition-all hover:bg-slate-100 dark:hover:bg-slate-800/60 text-slate-700 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white">
+          <i class="fa-solid fa-star-half-stroke w-4 text-center text-sm"></i><span>Lịch sử & Chấm điểm</span>
+        </button>
+        <button id="nav-criteria" onclick="switchTab('criteria')" class="perm-manage_settings w-full flex items-center space-x-3 px-4 py-3 rounded-2xl text-xs font-semibold transition-all hover:bg-slate-100 dark:hover:bg-slate-800/60 text-slate-700 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white">
+          <i class="fa-solid fa-list-check w-4 text-center text-sm"></i><span>Cấu hình Tiêu chí ĐG</span>
+        </button>
+        <button id="nav-my-result" onclick="switchTab('my-result')" class="w-full flex items-center space-x-3 px-4 py-3 rounded-2xl text-xs font-semibold transition-all hover:bg-slate-100 dark:hover:bg-slate-800/60 text-slate-700 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white">
+          <i class="fa-solid fa-user-check w-4 text-center text-sm"></i><span>Kết quả cá nhân & Profile</span>
+        </button>
+        <button onclick="switchTab('rules')" id="nav-rules" class="w-full flex items-center space-x-3 px-4 py-3 rounded-2xl text-xs font-semibold transition-all hover:bg-slate-100 dark:hover:bg-slate-800/60 text-slate-700 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white">
+          <i class="fa-solid fa-scale-balanced w-4 text-center text-sm"></i><span>Quy chế thang điểm</span>
+        </button>
+        <button id="nav-settings" onclick="switchTab('settings')" class="perm-manage_settings w-full flex items-center space-x-3 px-4 py-3 rounded-2xl text-xs font-semibold transition-all hover:bg-slate-100 dark:hover:bg-slate-800/60 text-slate-700 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white">
+          <i class="fa-solid fa-gear w-4 text-center text-sm"></i><span>Cài đặt & Giao diện</span>
+        </button>
+      </nav>
+
+      <div class="p-3.5 border-t border-slate-200 dark:border-slate-800 flex items-center justify-between bg-slate-50 dark:bg-slate-950/60">
+        <div class="flex items-center space-x-3 truncate">
+          <div id="user-avatar" class="w-9 h-9 rounded-xl bg-gradient-to-tr from-emerald-500 to-blue-600 text-white flex items-center justify-center font-bold text-xs shadow-md">A</div>
+          <div class="truncate">
+            <p id="user-display-name" class="text-xs font-bold text-slate-900 dark:text-white truncate">Admin</p>
+            <p id="user-display-role" class="text-[10px] text-emerald-600 dark:text-emerald-400 font-bold truncate">Quản trị viên</p>
+          </div>
+        </div>
+        <div class="flex items-center gap-1">
+          <button onclick="toggleDarkMode()" title="Chuyển chế độ Sáng/Tối" class="p-2.5 text-slate-600 dark:text-slate-400 hover:text-amber-500 hover:bg-slate-200 dark:hover:bg-slate-800 rounded-xl transition-all">
+            <i class="fa-solid fa-moon dark:hidden text-xs"></i>
+            <i class="fa-solid fa-sun hidden dark:inline text-xs text-amber-400"></i>
+          </button>
+          <button onclick="handleLogout()" title="Đăng xuất" class="p-2.5 text-slate-600 dark:text-slate-400 hover:text-rose-500 hover:bg-slate-200 dark:hover:bg-slate-800 rounded-xl transition-all">
+            <i class="fa-solid fa-right-from-bracket text-xs"></i>
+          </button>
+        </div>
+      </div>
+    </aside>
+
+    <!-- CONTENT AREA -->
+    <main class="flex-1 h-screen overflow-y-auto p-6 lg:p-8 space-y-6 text-slate-800 dark:text-slate-100">
+
+      <header class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 bg-white/90 dark:bg-slate-900/80 backdrop-blur-xl p-5 rounded-3xl shadow-xl border border-slate-200 dark:border-slate-800">
+        <div>
+          <h1 id="page-title" class="text-base font-bold text-slate-900 dark:text-white tracking-tight">Tổng quan & Bảng xếp hạng</h1>
+          <p id="header-company-sub" class="text-xs text-slate-500 dark:text-slate-400 font-semibold mt-0.5">CÔNG TY TNHH MTV TM & DV ĐA TUẤN THÀNH</p>
+        </div>
+      </header>
+
+      <!-- TAB 1: DASHBOARD -->
+      <div id="tab-dashboard" class="space-y-6">
+        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
+          <div class="bg-white/90 dark:bg-slate-900/80 backdrop-blur-xl p-5 rounded-3xl border border-slate-200 dark:border-slate-800 shadow-lg flex items-center justify-between">
+            <div><p class="text-[10px] text-slate-500 dark:text-slate-400 font-bold uppercase tracking-wider">Tổng Nhân Viên</p><h3 id="stat-total-emp" class="text-2xl font-extrabold text-slate-900 dark:text-white mt-1">0</h3></div>
+            <div class="w-12 h-12 bg-blue-500/10 text-blue-500 dark:text-blue-400 border border-blue-500/20 rounded-2xl flex items-center justify-center text-base"><i class="fa-solid fa-users"></i></div>
+          </div>
+          <div class="bg-white/90 dark:bg-slate-900/80 backdrop-blur-xl p-5 rounded-3xl border border-slate-200 dark:border-slate-800 shadow-lg flex items-center justify-between">
+            <div><p class="text-[10px] text-slate-500 dark:text-slate-400 font-bold uppercase tracking-wider">Lượt Đánh Giá</p><h3 id="stat-total-reviews" class="text-2xl font-extrabold text-slate-900 dark:text-white mt-1">0</h3></div>
+            <div class="w-12 h-12 bg-emerald-500/10 text-emerald-500 dark:text-emerald-400 border border-emerald-500/20 rounded-2xl flex items-center justify-center text-base"><i class="fa-solid fa-clipboard-check"></i></div>
+          </div>
+          <div class="bg-white/90 dark:bg-slate-900/80 backdrop-blur-xl p-5 rounded-3xl border border-slate-200 dark:border-slate-800 shadow-lg flex items-center justify-between">
+            <div><p class="text-[10px] text-slate-500 dark:text-slate-400 font-bold uppercase tracking-wider">ĐTB Công Ty</p><h3 id="stat-avg-score" class="text-2xl font-extrabold text-emerald-600 dark:text-emerald-400 mt-1">0.0 / 10</h3></div>
+            <div class="w-12 h-12 bg-teal-500/10 text-teal-500 dark:text-teal-400 border border-teal-500/20 rounded-2xl flex items-center justify-center text-base"><i class="fa-solid fa-award"></i></div>
+          </div>
+          <div class="bg-white/90 dark:bg-slate-900/80 backdrop-blur-xl p-5 rounded-3xl border border-slate-200 dark:border-slate-800 shadow-lg flex items-center justify-between">
+            <div><p class="text-[10px] text-slate-500 dark:text-slate-400 font-bold uppercase tracking-wider">Số Người Xuất Sắc (A)</p><h3 id="stat-excellent-count" class="text-2xl font-extrabold text-amber-600 dark:text-amber-400 mt-1">0</h3></div>
+            <div class="w-12 h-12 bg-amber-500/10 text-amber-500 dark:text-amber-400 border border-amber-500/20 rounded-2xl flex items-center justify-center text-base"><i class="fa-solid fa-crown"></i></div>
+          </div>
+        </div>
+
+        <!-- FILTER & ACTION BAR -->
+        <div class="bg-white/90 dark:bg-slate-900/80 backdrop-blur-xl p-5 rounded-3xl border border-slate-200 dark:border-slate-800 shadow-xl space-y-4">
+          <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-6 gap-3">
+            <div class="lg:col-span-2">
+              <label class="block text-[10px] font-bold text-slate-600 dark:text-slate-400 uppercase mb-1">Tìm Nhân Viên (Tên / Mã)</label>
+              <input type="text" id="filter-search" oninput="applyLeaderboardFilter()" placeholder="Nhập tên hoặc mã NV..." class="w-full px-3 py-2.5 bg-slate-50 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-xl text-xs text-slate-900 dark:text-slate-100 focus:outline-none">
+            </div>
+            <div>
+              <label class="block text-[10px] font-bold text-slate-600 dark:text-slate-400 uppercase mb-1">Từ Ngày</label>
+              <input type="date" id="filter-from-date" onchange="applyLeaderboardFilter()" class="w-full px-3 py-2.5 bg-slate-50 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-xl text-xs text-slate-900 dark:text-slate-100 focus:outline-none">
+            </div>
+            <div>
+              <label class="block text-[10px] font-bold text-slate-600 dark:text-slate-400 uppercase mb-1">Đến Ngày</label>
+              <input type="date" id="filter-to-date" onchange="applyLeaderboardFilter()" class="w-full px-3.5 py-2.5 bg-slate-50 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-xl text-xs text-slate-900 dark:text-slate-100 focus:outline-none">
+            </div>
+            <div>
+              <label class="block text-[10px] font-bold text-slate-600 dark:text-slate-400 uppercase mb-1">Tháng / Quý / Năm</label>
+              <select id="filter-period-type" onchange="applyLeaderboardFilter()" class="w-full px-3 py-2.5 bg-slate-50 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-xl text-xs text-slate-900 dark:text-slate-100 focus:outline-none">
+                <option value="">Tất cả thời gian</option>
+                <option value="tháng">Theo Tháng</option>
+                <option value="quý">Theo Quý</option>
+                <option value="năm">Theo Năm</option>
+                <option value="ngày">Theo Ngày</option>
+              </select>
+            </div>
+            <div class="flex items-end gap-2">
+              <button onclick="resetLeaderboardFilter()" class="w-full bg-slate-200 dark:bg-slate-800 hover:bg-slate-300 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 font-bold py-2.5 px-3 rounded-xl text-xs border border-slate-300 dark:border-slate-700 transition" title="Làm mới bộ lọc">
+                <i class="fa-solid fa-rotate-right mr-1"></i> Làm mới
+              </button>
+            </div>
+          </div>
+
+          <div class="flex flex-wrap justify-between items-center pt-3 border-t border-slate-200 dark:border-slate-800 gap-3">
+            <div class="text-xs text-slate-500 dark:text-slate-400 font-medium" id="filter-result-count">Hiển thị toàn bộ nhân sự</div>
+            <div class="flex gap-2 perm-export_print_all">
+              <button onclick="exportLeaderboardExcel()" class="btn-fixed-layout bg-emerald-600 hover:bg-emerald-500 text-white text-xs py-2 shadow-md">
+                <i class="fa-solid fa-file-excel"></i> <span>Xuất Excel Tổng</span>
+              </button>
+              <button onclick="openPrintPreviewModal('all')" class="btn-fixed-layout bg-blue-600 hover:bg-blue-500 text-white text-xs py-2 shadow-md">
+                <i class="fa-solid fa-print"></i> <span>Xem & In Tổng</span>
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <!-- BẢNG XẾP HẠNG VỚI CHECKBOX CHỌN NHÂN VIÊN & THANH THAO TÁC NỔI -->
+        <div class="bg-white/90 dark:bg-slate-900/80 backdrop-blur-xl rounded-3xl border border-slate-200 dark:border-slate-800 shadow-xl p-6 relative">
+          
+          <!-- THANH THAO TÁC NỔI KHI TÍCH CHỌN NHÂN VIÊN -->
+          <div id="floating-action-bar" class="hidden mb-4 p-4 rounded-2xl bg-emerald-50 dark:bg-slate-800 border border-emerald-500/30 flex flex-wrap items-center justify-between gap-3 animate-toast">
+            <div class="flex items-center gap-3 text-xs font-bold text-slate-800 dark:text-slate-100">
+              <span class="w-7 h-7 rounded-xl bg-emerald-600 text-white flex items-center justify-center" id="selected-count-badge">0</span>
+              <span>Đã chọn <span id="selected-count-text">0</span> nhân viên</span>
+            </div>
+            <div class="flex items-center gap-2">
+              <button onclick="handleBatchPrint()" class="px-4 py-2 bg-blue-600 hover:bg-blue-500 text-white rounded-xl text-xs font-bold shadow transition flex items-center gap-2">
+                <i class="fa-solid fa-print"></i> XEM & IN ĐÃ CHỌN
+              </button>
+              <button onclick="handleBatchExcel()" class="px-4 py-2 bg-emerald-600 hover:bg-emerald-500 text-white rounded-xl text-xs font-bold shadow transition flex items-center gap-2">
+                <i class="fa-solid fa-file-excel"></i> XUẤT EXCEL
+              </button>
+            </div>
+          </div>
+
+          <div class="flex justify-between items-center mb-5">
+            <h3 class="text-sm font-bold text-slate-900 dark:text-white">Bảng Xếp Hạng Hiệu Suất (Tích chọn nhân viên để In hoặc Xuất Excel)</h3>
+            <span class="text-[11px] bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 px-3 py-1 rounded-xl font-semibold border border-slate-200 dark:border-slate-700">Cập nhật tự động</span>
+          </div>
+
+          <div class="overflow-x-auto">
+            <table class="w-full text-left text-xs">
+              <thead>
+                <tr class="bg-slate-100 dark:bg-slate-800/50 border-b border-slate-200 dark:border-slate-800 text-[10px] font-bold text-slate-600 dark:text-slate-400 uppercase tracking-wider">
+                  <th class="py-3.5 px-4 rounded-l-xl w-12 text-center">
+                    <input type="checkbox" id="select-all-checkbox" onchange="toggleSelectAll(this)" class="rounded border-slate-300 dark:border-slate-700 text-emerald-500 w-4 h-4 cursor-pointer">
+                  </th>
+                  <th class="py-3.5 px-4">Hạng</th>
+                  <th class="py-3.5 px-4">Nhân viên</th>
+                  <th class="py-3.5 px-4">Phòng ban</th>
+                  <th class="py-3.5 px-4 text-center">Số lượt ĐG</th>
+                  <th class="py-3.5 px-4 text-center">ĐTB (Thang 10)</th>
+                  <th class="py-3.5 px-4 text-right">Xếp loại</th>
+                  <th class="py-3.5 px-4 text-right rounded-r-xl">Thao Tác Nhanh</th>
+                </tr>
+              </thead>
+              <tbody id="leaderboard-tbody" class="divide-y divide-slate-200 dark:divide-slate-800/60 font-medium"></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <!-- TAB 2: ANALYTICS -->
+      <div id="tab-analytics" class="hidden space-y-6">
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          <div class="bg-white/90 dark:bg-slate-900/80 backdrop-blur-xl p-6 rounded-3xl border border-slate-200 dark:border-slate-800 shadow-xl">
+            <h3 class="text-xs font-bold text-slate-900 dark:text-white mb-4">Điểm Trung Bình Theo Phòng Ban</h3>
+            <div class="h-72"><canvas id="chart-dept"></canvas></div>
+          </div>
+          <div class="bg-white/90 dark:bg-slate-900/80 backdrop-blur-xl p-6 rounded-3xl border border-slate-200 dark:border-slate-800 shadow-xl">
+            <h3 class="text-xs font-bold text-slate-900 dark:text-white mb-4">Tỷ Lệ Xếp Loại Nhân Sự</h3>
+            <div class="h-72 flex justify-center"><canvas id="chart-ranks"></canvas></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- TAB 3: USERS & EMPLOYEES -->
+      <div id="tab-users" class="hidden space-y-5">
+        <div class="bg-white/90 dark:bg-slate-900/80 backdrop-blur-xl p-5 rounded-3xl border border-slate-200 dark:border-slate-800 shadow-xl flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+          <div>
+            <h3 class="text-sm font-bold text-slate-900 dark:text-white">Quản Lý Nhân Sự, Sửa Mật Khẩu & Phân Quyền</h3>
+            <p class="text-xs text-slate-500 dark:text-slate-400 mt-0.5 font-medium">Tùy chỉnh thông tin tài khoản, mật khẩu đăng nhập và quyền hạn hệ thống.</p>
+          </div>
+          <button onclick="openEmployeeModal()" class="btn-fixed-layout bg-emerald-600 hover:bg-emerald-500 text-white text-xs shadow-lg shadow-emerald-900/20 transition">
+            <i class="fa-solid fa-user-plus"></i> <span>Thêm Nhân Sự</span>
+          </button>
+        </div>
+
+        <div class="bg-white/90 dark:bg-slate-900/80 backdrop-blur-xl rounded-3xl border border-slate-200 dark:border-slate-800 shadow-xl overflow-hidden">
+          <table class="w-full text-left text-xs">
+            <thead class="bg-slate-100 dark:bg-slate-800/50 border-b border-slate-200 dark:border-slate-800 text-[10px] font-bold text-slate-600 dark:text-slate-400 uppercase tracking-wider">
+              <tr>
+                <th class="p-4">Mã NV / Tên Đăng Nhập</th>
+                <th class="p-4">Họ và Tên</th>
+                <th class="p-4">Phòng Ban / Chức Vụ</th>
+                <th class="p-4">Quyền Hạn Hệ Thống</th>
+                <th class="p-4 text-right">Thao Tác Quản Trị</th>
+              </tr>
+            </thead>
+            <tbody id="users-tbody" class="divide-y divide-slate-200 dark:divide-slate-800/60"></tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- TAB 4: DEPARTMENTS -->
+      <div id="tab-departments" class="hidden space-y-5">
+        <div class="flex justify-between items-center bg-white/90 dark:bg-slate-900/80 backdrop-blur-xl p-5 rounded-3xl border border-slate-200 dark:border-slate-800 shadow-xl">
+          <div>
+            <h3 class="text-sm font-bold text-slate-900 dark:text-white">Danh Sách Phòng Ban Doanh Nghiệp</h3>
+            <p class="text-xs text-slate-500 dark:text-slate-400 mt-0.5 font-medium">Quản lý cơ cấu các phòng ban bộ phận.</p>
+          </div>
+          <button onclick="openDepartmentModal()" class="perm-edit_departments btn-fixed-layout bg-emerald-600 hover:bg-emerald-500 text-white text-xs shadow-lg shadow-emerald-900/20 transition">
+            <i class="fa-solid fa-plus"></i> <span>Thêm Phòng Ban</span>
+          </button>
+        </div>
+        <div id="departments-list" class="grid grid-cols-1 md:grid-cols-3 gap-5"></div>
+      </div>
+
+      <!-- TAB 5: REVIEWS -->
+      <div id="tab-reviews" class="hidden space-y-5">
+        <div class="flex justify-between items-center bg-white/90 dark:bg-slate-900/80 backdrop-blur-xl p-5 rounded-3xl border border-slate-200 dark:border-slate-800 shadow-xl">
+          <div>
+            <h3 class="text-sm font-bold text-slate-900 dark:text-white">Lịch Sử, Nhật Ký Sửa Đổi & Chấm Điểm</h3>
+            <p class="text-xs text-slate-500 dark:text-slate-400 mt-0.5 font-medium">Xem thời gian tạo, số lần sửa và lịch sử cập nhật chi tiết từng bản đánh giá.</p>
+          </div>
+          <div class="perm-edit_reviews">
+            <button onclick="openReviewModal()" class="btn-fixed-layout bg-gradient-to-r from-emerald-600 to-blue-600 hover:from-emerald-500 hover:to-blue-500 text-white shadow-lg shadow-emerald-900/20 text-xs transition-all">
+              <i class="fa-solid fa-plus"></i> <span>Tạo Đánh Giá Mới</span>
+            </button>
+          </div>
+        </div>
+
+        <div class="bg-white/90 dark:bg-slate-900/80 backdrop-blur-xl rounded-3xl border border-slate-200 dark:border-slate-800 shadow-xl overflow-x-auto">
+          <table class="w-full text-left text-xs">
+            <thead class="bg-slate-100 dark:bg-slate-800/50 border-b border-slate-200 dark:border-slate-800 text-[10px] font-bold text-slate-600 dark:text-slate-400 uppercase tracking-wider" id="review-table-head"></thead>
+            <tbody id="reviews-tbody" class="divide-y divide-slate-200 dark:divide-slate-800/60"></tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- TAB 6: CRITERIA -->
+      <div id="tab-criteria" class="hidden space-y-5">
+        <div class="bg-white/90 dark:bg-slate-900/80 backdrop-blur-xl p-6 rounded-3xl border border-slate-200 dark:border-slate-800 shadow-xl space-y-5">
+          <div class="flex justify-between items-center border-b border-slate-200 dark:border-slate-800 pb-4">
+            <div>
+              <h3 class="text-sm font-bold text-slate-900 dark:text-white">Cấu Hình Tiêu Chí Đánh Giá & Trọng Số (%)</h3>
+              <p class="text-xs text-slate-500 dark:text-slate-400 mt-0.5 font-medium">Tùy chỉnh tiêu chí chấm điểm và tỷ lệ trọng số phù hợp với đặc thù công ty.</p>
+            </div>
+            <button onclick="openCriteriaModal()" class="btn-fixed-layout bg-emerald-600 hover:bg-emerald-500 text-white text-xs shadow-lg shadow-emerald-900/20 transition">
+              <i class="fa-solid fa-plus"></i> <span>Thêm Tiêu Chí</span>
+            </button>
+          </div>
+
+          <div class="overflow-x-auto">
+            <table class="w-full text-left text-xs">
+              <thead class="bg-slate-100 dark:bg-slate-800/50 border-b border-slate-200 dark:border-slate-800 text-[10px] font-bold text-slate-600 dark:text-slate-400 uppercase tracking-wider">
+                <tr>
+                  <th class="p-4">Mã Tiêu Chí</th>
+                  <th class="p-4">Tên Tiêu Chí Đánh Giá</th>
+                  <th class="p-4 text-center">Trọng Số (%)</th>
+                  <th class="p-4 text-right">Thao Tác</th>
+                </tr>
+              </thead>
+              <tbody id="criteria-tbody" class="divide-y divide-slate-200 dark:divide-slate-800/60 font-medium"></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <!-- TAB 7: MY RESULT & PROFILE -->
+      <div id="tab-my-result" class="hidden space-y-6">
+        <!-- PROFILE CARD & PASSWORD CHANGE -->
+        <div class="bg-white/90 dark:bg-slate-900/80 backdrop-blur-xl p-6 rounded-3xl border border-slate-200 dark:border-slate-800 shadow-xl flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+          <div class="flex items-center space-x-4">
+            <div id="my-profile-avatar" class="w-14 h-14 bg-gradient-to-tr from-emerald-500 to-blue-600 text-white rounded-2xl flex items-center justify-center font-extrabold text-xl shadow-lg">U</div>
+            <div>
+              <h3 id="my-profile-name" class="font-extrabold text-base text-slate-900 dark:text-white">Tên Nhân Viên</h3>
+              <p id="my-profile-sub" class="text-xs text-slate-500 dark:text-slate-400 font-medium mt-0.5">Mã NV: NV001 • Phòng Kinh Doanh</p>
+            </div>
+          </div>
+          <button onclick="openChangeMyPasswordModal()" class="btn-fixed-layout bg-slate-200 dark:bg-slate-800 hover:bg-slate-300 dark:hover:bg-slate-700 text-slate-800 dark:text-slate-200 text-xs font-bold transition">
+            <i class="fa-solid fa-key text-emerald-500"></i> <span>Đổi Mật Khẩu Cá Nhân</span>
+          </button>
+        </div>
+
+        <div class="bg-white/90 dark:bg-slate-900/80 backdrop-blur-xl p-6 rounded-3xl border border-slate-200 dark:border-slate-800 shadow-xl space-y-4">
+          <h3 class="text-sm font-bold text-slate-900 dark:text-white">Kết Quả Đánh Giá Hiệu Suất Cá Nhân</h3>
+          <div class="overflow-x-auto">
+            <table class="w-full text-left text-xs">
+              <thead class="bg-slate-100 dark:bg-slate-800/50 border-b border-slate-200 dark:border-slate-800 text-[10px] font-bold text-slate-600 dark:text-slate-400 uppercase tracking-wider" id="my-review-table-head"></thead>
+              <tbody id="my-reviews-tbody" class="divide-y divide-slate-200 dark:divide-slate-800/60"></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <!-- TAB 8: RULES -->
+      <div id="tab-rules" class="hidden space-y-5">
+        <div class="bg-white/90 dark:bg-slate-900/80 backdrop-blur-xl p-6 rounded-3xl border border-slate-200 dark:border-slate-800 shadow-xl space-y-5">
+          <h3 class="text-sm font-bold text-slate-900 dark:text-white border-b border-slate-200 dark:border-slate-800 pb-3">Quy Chế Thang Điểm 10 & Xếp Loại Hiệu Suất</h3>
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-4 text-xs">
+            <div class="p-5 rounded-3xl bg-emerald-50 dark:bg-emerald-950/30 border border-emerald-200 dark:border-emerald-800/50">
+              <span class="px-3 py-1 bg-emerald-600 text-white rounded-xl text-[10px] font-bold shadow-sm">8.5 - 10.0 Điểm</span>
+              <h4 class="font-bold text-emerald-700 dark:text-emerald-400 text-sm mt-2.5">Loại A - Xuất Sắc</h4>
+              <p class="text-slate-600 dark:text-slate-300 mt-1 leading-relaxed font-medium">Thái độ chuẩn mực, hoàn thành công việc xuất sắc, năng lực vượt trội.</p>
+            </div>
+            <div class="p-5 rounded-3xl bg-blue-50 dark:bg-blue-950/30 border border-blue-200 dark:border-blue-800/50">
+              <span class="px-3 py-1 bg-blue-600 text-white rounded-xl text-[10px] font-bold shadow-sm">7.0 - 8.4 Điểm</span>
+              <h4 class="font-bold text-blue-700 dark:text-blue-400 text-sm mt-2.5">Loại B - Khá / Tốt</h4>
+              <p class="text-slate-600 dark:text-slate-300 mt-1 leading-relaxed font-medium">Hoàn thành tốt nhiệm vụ được giao, tuân thủ nghiêm túc quy chế.</p>
+            </div>
+            <div class="p-5 rounded-3xl bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800/50">
+              <span class="px-3 py-1 bg-amber-600 text-white rounded-xl text-[10px] font-bold shadow-sm">5.0 - 6.9 Điểm</span>
+              <h4 class="font-bold text-amber-700 dark:text-amber-400 text-sm mt-2.5">Loại C - Trung Bình</h4>
+              <p class="text-slate-600 dark:text-slate-300 mt-1 leading-relaxed font-medium">Hoàn thành mức vừa đủ, cần cải thiện thêm tiến độ hoặc thái độ.</p>
+            </div>
+            <div class="p-5 rounded-3xl bg-rose-50 dark:bg-rose-950/30 border border-rose-200 dark:border-rose-800/50">
+              <span class="px-3 py-1 bg-rose-600 text-white rounded-xl text-[10px] font-bold shadow-sm">&lt; 5.0 Điểm</span>
+              <h4 class="font-bold text-rose-700 dark:text-rose-400 text-sm mt-2.5">Loại D - Yếu / Không Đạt</h4>
+              <p class="text-slate-600 dark:text-slate-300 mt-1 leading-relaxed font-medium">Chưa đạt chỉ tiêu công việc. Cần lên kế hoạch tái đào tạo.</p>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- TAB 9: SETTINGS -->
+      <div id="tab-settings" class="hidden space-y-6">
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          <div class="bg-white/90 dark:bg-slate-900/80 backdrop-blur-xl p-6 rounded-3xl border border-slate-200 dark:border-slate-800 shadow-xl space-y-4">
+            <h3 class="text-sm font-bold text-slate-900 dark:text-white border-b border-slate-200 dark:border-slate-800 pb-3"><i class="fa-solid fa-building text-emerald-500 dark:text-emerald-400 mr-2"></i>Cài Đặt Tên Doanh Nghiệp</h3>
+            <form onsubmit="saveCompanySettings(event)" class="space-y-4">
+              <div>
+                <label class="block text-[11px] font-bold text-slate-600 dark:text-slate-300 uppercase tracking-wider mb-2">Tên Công Ty Mới</label>
+                <input type="text" id="setting-company-name" required class="w-full px-4 py-3 bg-slate-50 dark:bg-slate-800/80 border border-slate-300 dark:border-slate-700 rounded-2xl text-xs text-slate-900 dark:text-slate-100 focus:outline-none font-medium">
+              </div>
+              <button type="submit" class="btn-fixed-layout bg-emerald-600 hover:bg-emerald-500 text-white text-xs shadow-lg shadow-emerald-900/20 transition">
+                <i class="fa-solid fa-floppy-disk"></i> <span>Lưu Tên Công Ty</span>
+              </button>
+            </form>
+          </div>
+
+          <div class="bg-white/90 dark:bg-slate-900/80 backdrop-blur-xl p-6 rounded-3xl border border-slate-200 dark:border-slate-800 shadow-xl space-y-5">
+            <h3 class="text-sm font-bold text-slate-900 dark:text-white border-b border-slate-200 dark:border-slate-800 pb-3"><i class="fa-solid fa-palette text-blue-500 dark:text-blue-400 mr-2"></i>Tùy Chỉnh Giao Diện & Ảnh Nền</h3>
+            <div class="space-y-3">
+              <label class="block text-[11px] font-bold text-slate-600 dark:text-slate-300 uppercase tracking-wider">Tải Ảnh Nền Tùy Chỉnh (Tệp hoặc Link)</label>
+              <div class="flex items-center gap-3">
+                <input type="file" id="bg-file-input" accept="image/*" onchange="handleBgUpload(event)" class="hidden">
+                <button type="button" onclick="document.getElementById('bg-file-input').click()" class="btn-fixed-layout bg-slate-200 dark:bg-slate-800 hover:bg-slate-300 dark:hover:bg-slate-700 text-slate-800 dark:text-slate-200 border border-slate-300 dark:border-slate-700 text-xs font-bold transition">
+                  <i class="fa-solid fa-upload"></i> <span>Chọn Tệp Ảnh</span>
+                </button>
+                <button type="button" onclick="resetBgImage()" class="text-rose-500 dark:text-rose-400 hover:text-rose-600 text-xs font-bold px-3 py-2">Xóa Ảnh Nền</button>
+              </div>
+              <div class="flex gap-2 pt-1">
+                <input type="url" id="bg-url-input" placeholder="Dán đường dẫn ảnh (.jpg, .png, .webp)..." class="flex-1 px-4 py-2.5 bg-slate-50 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-xl text-xs text-slate-900 dark:text-slate-100 focus:outline-none">
+                <button type="button" onclick="handleBgUrlSubmit()" class="btn-fixed-layout bg-blue-600 hover:bg-blue-500 text-white text-xs py-2">Áp Dụng Link</button>
+              </div>
+            </div>
+            <div>
+              <label class="block text-[11px] font-bold text-slate-600 dark:text-slate-300 uppercase tracking-wider mb-2">Chế Độ Sáng / Tối Nhanh</label>
+              <button onclick="toggleDarkMode()" class="btn-fixed-layout bg-slate-200 dark:bg-slate-800 hover:bg-slate-300 dark:hover:bg-slate-700 text-slate-800 dark:text-slate-200 border border-slate-300 dark:border-slate-700 text-xs font-bold transition">
+                <i class="fa-solid fa-moon dark:hidden"></i>
+                <i class="fa-solid fa-sun hidden dark:inline text-amber-400"></i>
+                <span>Chuyển đổi Sáng / Tối</span>
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+    </main>
+  </div>
+
+  <!-- PRINT PREVIEW MODAL -->
+  <div id="modal-print-preview" class="fixed inset-0 bg-slate-900/40 dark:bg-slate-950/85 backdrop-blur-xl z-[150] flex items-center justify-center p-4 hidden">
+    <div class="bg-white dark:bg-slate-900 rounded-3xl shadow-2xl max-w-4xl w-full p-6 space-y-4 border border-slate-200 dark:border-slate-800 flex flex-col max-h-[92vh] text-slate-900 dark:text-slate-100">
+      <div class="flex justify-between items-center border-b border-slate-200 dark:border-slate-800 pb-3">
+        <div>
+          <h3 class="font-bold text-sm"><i class="fa-solid fa-print text-emerald-500 dark:text-emerald-400 mr-2"></i>Xem Trước Bản In (Tùy chỉnh linh hoạt)</h3>
+          <p class="text-[11px] text-slate-500 dark:text-slate-400">Sửa trực tiếp các ô bên dưới để cập nhật ngay vào bản xem trước.</p>
+        </div>
+        <button onclick="closeModal('modal-print-preview')" class="w-8 h-8 rounded-xl bg-slate-200 dark:bg-slate-800 text-slate-700 dark:text-slate-400 hover:text-white flex items-center justify-center"><i class="fa-solid fa-xmark"></i></button>
+      </div>
+
+      <!-- EDITABLE PRINT CONFIG INPUTS -->
+      <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 bg-slate-100 dark:bg-slate-800/50 p-4 rounded-2xl border border-slate-200 dark:border-slate-800 text-xs">
+        <div>
+          <label class="block font-bold text-slate-700 dark:text-slate-300 mb-1">Tên Công Ty / Đơn Vị</label>
+          <input type="text" id="print-cfg-company" oninput="updatePrintPreviewContent()" class="w-full px-3 py-2 bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-xl text-slate-900 dark:text-slate-100 font-medium focus:outline-none">
+        </div>
+        <div>
+          <label class="block font-bold text-slate-700 dark:text-slate-300 mb-1">Tiêu Đề Báo Cáo</label>
+          <input type="text" id="print-cfg-title" value="BÁO CÁO XẾP HẠNG HIỆU SUẤT NHÂN SỰ" oninput="updatePrintPreviewContent()" class="w-full px-3 py-2 bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-xl text-slate-900 dark:text-slate-100 font-medium focus:outline-none">
+        </div>
+        <div>
+          <label class="block font-bold text-slate-700 dark:text-slate-300 mb-1">Thời Gian Báo Cáo</label>
+          <input type="text" id="print-cfg-time" value="Toàn bộ thời gian" oninput="updatePrintPreviewContent()" class="w-full px-3 py-2 bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-xl text-slate-900 dark:text-slate-100 font-medium focus:outline-none">
+        </div>
+        <div>
+          <label class="block font-bold text-slate-700 dark:text-slate-300 mb-1">Chức Danh Ký 1 (Trái)</label>
+          <input type="text" id="print-cfg-sig1" value="Người lập báo cáo" oninput="updatePrintPreviewContent()" class="w-full px-3 py-2 bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-xl text-slate-900 dark:text-slate-100 font-medium focus:outline-none">
+        </div>
+        <div>
+          <label class="block font-bold text-slate-700 dark:text-slate-300 mb-1">Chức Danh Ký 2 (Phải)</label>
+          <input type="text" id="print-cfg-sig2" value="Đại diện Ban Giám Đốc" oninput="updatePrintPreviewContent()" class="w-full px-3 py-2 bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-xl text-slate-900 dark:text-slate-100 font-medium focus:outline-none">
+        </div>
+      </div>
+
+      <!-- PREVIEW DOCUMENT BOX -->
+      <div class="flex-1 overflow-y-auto bg-white text-slate-900 p-6 rounded-2xl shadow-inner border border-slate-200" id="print-preview-content">
+        <div class="text-center space-y-1 mb-6">
+          <h2 id="preview-print-company" class="font-extrabold text-sm uppercase">CÔNG TY TNHH MTV TM & DV ĐA TUẤN THÀNH</h2>
+          <h1 id="preview-print-title" class="font-black text-base uppercase">BÁO CÁO XẾP HẠNG HIỆU SUẤT NHÂN SỰ</h1>
+          <p class="text-[11px] text-slate-500" id="preview-print-time">Thời gian: Toàn bộ thời gian</p>
+        </div>
+        <table class="w-full text-left text-xs border-collapse border border-slate-300">
+          <thead>
+            <tr class="bg-slate-100 border-b border-slate-300 text-[10px] font-bold uppercase text-slate-700">
+              <th class="p-2 border border-slate-300 text-center">STT</th>
+              <th class="p-2 border border-slate-300">Mã NV</th>
+              <th class="p-2 border border-slate-300">Họ và Tên</th>
+              <th class="p-2 border border-slate-300">Phòng Ban</th>
+              <th class="p-2 border border-slate-300 text-center">Số Lượt ĐG</th>
+              <th class="p-2 border border-slate-300 text-center">ĐTB Thang 10</th>
+              <th class="p-2 border border-slate-300 text-right">Xếp Loại</th>
+            </tr>
+          </thead>
+          <tbody id="preview-print-tbody"></tbody>
+        </table>
+        <div class="print-signature-container flex justify-between mt-10 text-xs pt-4 border-t border-slate-200 px-12">
+          <div class="text-center">
+            <p class="font-bold" id="preview-sig1">Người lập báo cáo</p>
+            <p class="text-slate-500 italic text-[10px] mt-12">(Ký, ghi rõ họ tên)</p>
+          </div>
+          <div class="text-center">
+            <p class="font-bold" id="preview-sig2">Đại diện Ban Giám Đốc</p>
+            <p class="text-slate-500 italic text-[10px] mt-12">(Ký, đóng dấu)</p>
+          </div>
+        </div>
+      </div>
+
+      <div class="flex justify-end gap-3 pt-2 border-t border-slate-200 dark:border-slate-800">
+        <button onclick="closeModal('modal-print-preview')" class="btn-fixed-layout bg-slate-200 dark:bg-slate-800 text-slate-800 dark:text-slate-300 hover:bg-slate-300 dark:hover:bg-slate-700 text-xs">Hủy</button>
+        <button onclick="window.print()" class="btn-fixed-layout bg-blue-600 hover:bg-blue-500 text-white text-xs shadow-lg"><i class="fa-solid fa-print"></i> Xác Nhận In Thật</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL: CHANGE MY PASSWORD FROM PROFILE -->
+  <div id="modal-change-my-pass" class="fixed inset-0 bg-slate-900/40 dark:bg-slate-950/85 backdrop-blur-xl z-[170] flex items-center justify-center p-4 hidden">
+    <div class="bg-white dark:bg-slate-900 rounded-3xl shadow-2xl max-w-sm w-full p-6 space-y-4 border border-slate-200 dark:border-slate-800 text-slate-900 dark:text-slate-100">
+      <div class="flex justify-between items-center border-b border-slate-200 dark:border-slate-800 pb-3">
+        <h3 class="font-bold text-sm"><i class="fa-solid fa-key text-emerald-500 mr-2"></i>Đổi Mật Khẩu Cá Nhân</h3>
+        <button onclick="closeModal('modal-change-my-pass')" class="w-8 h-8 rounded-xl bg-slate-200 dark:bg-slate-800 text-slate-700 dark:text-slate-400 hover:text-white flex items-center justify-center"><i class="fa-solid fa-xmark"></i></button>
+      </div>
+      <form onsubmit="handleChangeMyPassword(event)" class="space-y-3.5">
+        <div>
+          <label class="block text-[11px] font-bold uppercase mb-1.5 text-slate-700 dark:text-slate-300">Mật Khẩu Cũ</label>
+          <input type="password" id="my-old-pass" required placeholder="Nhập mật khẩu hiện tại..." class="w-full px-4 py-3 bg-slate-50 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-2xl text-xs text-slate-900 dark:text-slate-100 focus:outline-none font-medium">
+        </div>
+        <div>
+          <label class="block text-[11px] font-bold uppercase mb-1.5 text-slate-700 dark:text-slate-300">Mật Khẩu Mới</label>
+          <input type="password" id="my-new-pass" required placeholder="Nhập mật khẩu mới..." class="w-full px-4 py-3 bg-slate-50 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-2xl text-xs text-slate-900 dark:text-slate-100 focus:outline-none font-medium">
+        </div>
+        <div class="flex justify-end gap-2.5 pt-3.5 border-t border-slate-200 dark:border-slate-800">
+          <button type="button" onclick="closeModal('modal-change-my-pass')" class="btn-fixed-layout bg-slate-200 dark:bg-slate-800 text-slate-800 dark:text-slate-300 hover:bg-slate-300 dark:hover:bg-slate-700 text-xs">Hủy</button>
+          <button type="submit" class="btn-fixed-layout bg-emerald-600 text-white hover:bg-emerald-500 text-xs">Xác Nhận Đổi</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- MODAL: FORGOT PASSWORD -->
+  <div id="modal-forgot-pass" class="fixed inset-0 bg-slate-900/40 dark:bg-slate-950/85 backdrop-blur-xl z-[160] flex items-center justify-center p-4 hidden">
+    <div class="bg-white dark:bg-slate-900 rounded-3xl shadow-2xl max-w-sm w-full p-6 space-y-4 border border-slate-200 dark:border-slate-800 text-slate-900 dark:text-slate-100">
+      <div class="flex justify-between items-center border-b border-slate-200 dark:border-slate-800 pb-3">
+        <h3 class="font-bold text-sm"><i class="fa-solid fa-key text-emerald-500 dark:text-emerald-400 mr-2"></i>Khôi Phục Mật Khẩu</h3>
+        <button onclick="closeModal('modal-forgot-pass')" class="w-8 h-8 rounded-xl bg-slate-200 dark:bg-slate-800 text-slate-700 dark:text-slate-400 hover:text-white flex items-center justify-center"><i class="fa-solid fa-xmark"></i></button>
+      </div>
+      <form onsubmit="handleResetPassword(event)" class="space-y-3.5">
+        <div>
+          <label class="block text-[11px] font-bold uppercase mb-1.5 text-slate-700 dark:text-slate-300">Nhập Mã Nhân Viên / Tên Đăng Nhập</label>
+          <input type="text" id="forgot-code" required placeholder="Ví dụ: NV001" class="w-full px-4 py-3 bg-slate-50 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-2xl text-xs text-slate-900 dark:text-slate-100 focus:outline-none font-medium">
+        </div>
+        <div>
+          <label class="block text-[11px] font-bold uppercase mb-1.5 text-slate-700 dark:text-slate-300">Mật Khẩu Mới</label>
+          <input type="password" id="forgot-new-pass" required placeholder="Nhập mật khẩu mới..." class="w-full px-4 py-3 bg-slate-50 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-2xl text-xs text-slate-900 dark:text-slate-100 focus:outline-none font-medium">
+        </div>
+        <div class="flex justify-end gap-2.5 pt-3.5 border-t border-slate-200 dark:border-slate-800">
+          <button type="button" onclick="closeModal('modal-forgot-pass')" class="btn-fixed-layout bg-slate-200 dark:bg-slate-800 text-slate-800 dark:text-slate-300 hover:bg-slate-300 dark:hover:bg-slate-700 text-xs">Hủy</button>
+          <button type="submit" class="btn-fixed-layout bg-emerald-600 text-white hover:bg-emerald-500 text-xs">Đặt Lại Mật Khẩu</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- MODAL: SHOW ALL TIMESTAMPS OF A SINGLE EMPLOYEE -->
+  <div id="modal-emp-details" class="fixed inset-0 bg-slate-900/40 dark:bg-slate-950/85 backdrop-blur-xl z-[140] flex items-center justify-center p-4 hidden">
+    <div class="bg-white dark:bg-slate-900 rounded-3xl shadow-2xl max-w-3xl w-full p-6 space-y-4 border border-slate-200 dark:border-slate-800 text-slate-900 dark:text-slate-100">
+      <div class="flex justify-between items-center border-b border-slate-200 dark:border-slate-800 pb-3">
+        <div>
+          <h3 id="emp-detail-title" class="font-bold text-sm">Lịch Sử Đánh Giá Nhân Viên</h3>
+          <p id="emp-detail-sub" class="text-[11px] text-slate-500 dark:text-slate-400 font-medium">Danh sách tất cả thời gian chấm điểm (bao gồm cả ngày và giờ)</p>
+        </div>
+        <button onclick="closeModal('modal-emp-details')" class="w-8 h-8 rounded-xl bg-slate-200 dark:bg-slate-800 text-slate-700 dark:text-slate-400 hover:text-white flex items-center justify-center"><i class="fa-solid fa-xmark"></i></button>
+      </div>
+
+      <div class="overflow-x-auto max-h-96">
+        <table class="w-full text-left text-xs">
+          <thead class="bg-slate-100 dark:bg-slate-800/50 border-b border-slate-200 dark:border-slate-800 text-[10px] font-bold text-slate-600 dark:text-slate-400 uppercase tracking-wider">
+            <tr>
+              <th class="p-3">Thời Gian Đánh Giá (Ngày & Giờ)</th>
+              <th class="p-3">Kỳ ĐG</th>
+              <th class="p-3 text-center">Điểm Tổng</th>
+              <th class="p-3">Nhật Ký Sửa Đổi</th>
+              <th class="p-3 text-right">Ghi Chú</th>
+            </tr>
+          </thead>
+          <tbody id="emp-detail-tbody" class="divide-y divide-slate-200 dark:divide-slate-800/60 font-medium"></tbody>
+        </table>
+      </div>
+
+      <div class="flex justify-end pt-2 border-t border-slate-200 dark:border-slate-800">
+        <button onclick="closeModal('modal-emp-details')" class="btn-fixed-layout bg-slate-200 dark:bg-slate-800 text-slate-800 dark:text-slate-300 hover:bg-slate-300 dark:hover:bg-slate-700 text-xs">Đóng</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL: AUDIT LOG EDIT HISTORY -->
+  <div id="modal-edit-history" class="fixed inset-0 bg-slate-900/40 dark:bg-slate-950/85 backdrop-blur-xl z-[160] flex items-center justify-center p-4 hidden">
+    <div class="bg-white dark:bg-slate-900 rounded-3xl shadow-2xl max-w-md w-full p-6 space-y-4 border border-slate-200 dark:border-slate-800 text-slate-900 dark:text-slate-100">
+      <div class="flex justify-between items-center border-b border-slate-200 dark:border-slate-800 pb-3">
+        <div>
+          <h3 class="font-bold text-sm"><i class="fa-solid fa-clock-rotate-left text-emerald-500 dark:text-emerald-400 mr-2"></i>Lịch Sử Chỉnh Sửa Chi Tiết</h3>
+          <p class="text-[11px] text-slate-500 dark:text-slate-400 font-medium">Nhật ký theo dõi các lần thay đổi điểm số</p>
+        </div>
+        <button onclick="closeModal('modal-edit-history')" class="w-8 h-8 rounded-xl bg-slate-200 dark:bg-slate-800 text-slate-700 dark:text-slate-400 hover:text-white flex items-center justify-center"><i class="fa-solid fa-xmark"></i></button>
+      </div>
+
+      <div id="edit-history-list" class="space-y-3 max-h-80 overflow-y-auto pr-1"></div>
+
+      <div class="flex justify-end pt-2 border-t border-slate-200 dark:border-slate-800">
+        <button onclick="closeModal('modal-edit-history')" class="btn-fixed-layout bg-slate-200 dark:bg-slate-800 text-slate-800 dark:text-slate-300 hover:bg-slate-300 dark:hover:bg-slate-700 text-xs">Đóng</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- CUSTOM CONFIRMATION MODAL -->
+  <div id="modal-confirm" class="fixed inset-0 bg-slate-900/40 dark:bg-slate-950/80 backdrop-blur-xl z-[100] flex items-center justify-center p-4 hidden">
+    <div class="bg-white dark:bg-slate-900 rounded-3xl shadow-2xl max-w-sm w-full p-6 space-y-4 border border-slate-200 dark:border-slate-800 text-center text-slate-900 dark:text-slate-100">
+      <div class="w-12 h-12 bg-rose-500/10 text-rose-500 dark:text-rose-400 border border-rose-500/20 rounded-2xl flex items-center justify-center mx-auto text-xl">
+        <i class="fa-solid fa-triangle-exclamation"></i>
+      </div>
+      <div>
+        <h3 id="confirm-title" class="font-bold text-base">Xác nhận thao tác</h3>
+        <p id="confirm-message" class="text-xs text-slate-500 dark:text-slate-400 mt-1 font-medium">Bạn có chắc chắn muốn thực hiện hành động này không?</p>
+      </div>
+      <div class="flex justify-center gap-3 pt-2">
+        <button id="btn-confirm-cancel" class="btn-fixed-layout bg-slate-200 dark:bg-slate-800 text-slate-800 dark:text-slate-300 hover:bg-slate-300 dark:hover:bg-slate-700 transition">Hủy bỏ</button>
+        <button id="btn-confirm-ok" class="btn-fixed-layout bg-rose-600 text-white hover:bg-rose-500 transition shadow-lg shadow-rose-900/30">Xác Nhận Xóa</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODALS -->
+  <div id="modal-permissions" class="fixed inset-0 bg-slate-900/40 dark:bg-slate-950/80 backdrop-blur-xl z-50 flex items-center justify-center p-4 hidden">
+    <div class="bg-white dark:bg-slate-900 rounded-3xl shadow-2xl max-w-md w-full p-6 space-y-5 border border-slate-200 dark:border-slate-800 text-slate-900 dark:text-slate-100">
+      <div class="border-b border-slate-200 dark:border-slate-800 pb-3.5 flex justify-between items-center">
+        <div>
+          <h3 id="perm-user-title" class="font-bold text-sm">Cấu Hình Quyền Truy Cập</h3>
+          <p id="perm-user-sub" class="text-[11px] text-slate-500 dark:text-slate-400 mt-0.5 font-medium">Tích chọn các chức năng được phép truy cập</p>
+        </div>
+        <button onclick="closeModal('modal-permissions')" class="w-8 h-8 rounded-xl bg-slate-200 dark:bg-slate-800 text-slate-700 dark:text-slate-400 hover:text-white flex items-center justify-center"><i class="fa-solid fa-xmark"></i></button>
+      </div>
+      <input type="hidden" id="perm-user-index">
+      
+      <div class="flex justify-between items-center px-1">
+        <label class="flex items-center space-x-2 cursor-pointer text-xs font-bold text-emerald-600 dark:text-emerald-400">
+          <input type="checkbox" id="chk-select-all-perms" onchange="toggleSelectAllPerms(this)" class="rounded border-slate-300 text-emerald-500 w-4 h-4">
+          <span>Chọn tất cả quyền</span>
+        </label>
+        <span class="text-[10px] text-slate-500">Cấp toàn quyền hoặc hạn chế</span>
+      </div>
+
+      <div class="space-y-2 max-h-80 overflow-y-auto pr-1">
+        <label class="flex items-start space-x-3 p-3 rounded-2xl hover:bg-slate-100 dark:hover:bg-slate-800/60 border border-slate-200 dark:border-slate-800 cursor-pointer transition">
+          <input type="checkbox" id="chk-view_dashboard" class="perm-chk mt-0.5 rounded border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-emerald-500 w-4 h-4">
+          <div><span class="font-bold text-xs text-slate-800 dark:text-slate-200">Xem BXH</span></div>
+        </label>
+        <label class="flex items-start space-x-3 p-3 rounded-2xl hover:bg-slate-100 dark:hover:bg-slate-800/60 border border-slate-200 dark:border-slate-800 cursor-pointer transition">
+          <input type="checkbox" id="chk-view_own_result_only" class="perm-chk mt-0.5 rounded border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-emerald-500 w-4 h-4">
+          <div><span class="font-bold text-xs text-slate-800 dark:text-slate-200">Chỉ xem điểm & kết quả cá nhân của chính mình (chặn xem người khác)</span></div>
+        </label>
+        <label class="flex items-start space-x-3 p-3 rounded-2xl hover:bg-slate-100 dark:hover:bg-slate-800/60 border border-slate-200 dark:border-slate-800 cursor-pointer transition">
+          <input type="checkbox" id="chk-export_print_all" class="perm-chk mt-0.5 rounded border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-emerald-500 w-4 h-4">
+          <div><span class="font-bold text-xs text-slate-800 dark:text-slate-200">In tổng & Xuất Excel tổng bảng xếp hạng</span></div>
+        </label>
+        <label class="flex items-start space-x-3 p-3 rounded-2xl hover:bg-slate-100 dark:hover:bg-slate-800/60 border border-slate-200 dark:border-slate-800 cursor-pointer transition">
+          <input type="checkbox" id="chk-view_analytics" class="perm-chk mt-0.5 rounded border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-emerald-500 w-4 h-4">
+          <div><span class="font-bold text-xs text-slate-800 dark:text-slate-200">Xem Biểu Đồ Thống Kê</span></div>
+        </label>
+        <label class="flex items-start space-x-3 p-3 rounded-2xl hover:bg-slate-100 dark:hover:bg-slate-800/60 border border-slate-200 dark:border-slate-800 cursor-pointer transition">
+          <input type="checkbox" id="chk-view_all_reviews" class="perm-chk mt-0.5 rounded border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-emerald-500 w-4 h-4">
+          <div><span class="font-bold text-xs text-slate-800 dark:text-slate-200">Xem Lịch Sử Tất Cả Đánh Giá</span></div>
+        </label>
+        <label class="flex items-start space-x-3 p-3 rounded-2xl hover:bg-slate-100 dark:hover:bg-slate-800/60 border border-slate-200 dark:border-slate-800 cursor-pointer transition">
+          <input type="checkbox" id="chk-edit_reviews" class="perm-chk mt-0.5 rounded border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-emerald-500 w-4 h-4">
+          <div><span class="font-bold text-xs text-slate-800 dark:text-slate-200">Tạo & Chỉnh Sửa Điểm Đánh Giá</span></div>
+        </label>
+        <label class="flex items-start space-x-3 p-3 rounded-2xl hover:bg-slate-100 dark:hover:bg-slate-800/60 border border-slate-200 dark:border-slate-800 cursor-pointer transition">
+          <input type="checkbox" id="chk-view_employees" class="perm-chk mt-0.5 rounded border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-emerald-500 w-4 h-4">
+          <div><span class="font-bold text-xs text-slate-800 dark:text-slate-200">Xem Danh Sách Nhân Sự</span></div>
+        </label>
+        <label class="flex items-start space-x-3 p-3 rounded-2xl hover:bg-slate-100 dark:hover:bg-slate-800/60 border border-slate-200 dark:border-slate-800 cursor-pointer transition">
+          <input type="checkbox" id="chk-edit_employees" class="perm-chk mt-0.5 rounded border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-emerald-500 w-4 h-4">
+          <div><span class="font-bold text-xs text-slate-800 dark:text-slate-200">Quản Lý Nhân Sự (Thêm/Sửa/Xóa)</span></div>
+        </label>
+        <label class="flex items-start space-x-3 p-3 rounded-2xl hover:bg-slate-100 dark:hover:bg-slate-800/60 border border-slate-200 dark:border-slate-800 cursor-pointer transition">
+          <input type="checkbox" id="chk-view_departments" class="perm-chk mt-0.5 rounded border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-emerald-500 w-4 h-4">
+          <div><span class="font-bold text-xs text-slate-800 dark:text-slate-200">Quản Lý Phòng Ban</span></div>
+        </label>
+        <label class="flex items-start space-x-3 p-3 rounded-2xl hover:bg-slate-100 dark:hover:bg-slate-800/60 border border-slate-200 dark:border-slate-800 cursor-pointer transition">
+          <input type="checkbox" id="chk-manage_permissions" class="perm-chk mt-0.5 rounded border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-emerald-500 w-4 h-4">
+          <div><span class="font-bold text-xs text-slate-800 dark:text-slate-200">Quản Lý Phân Quyền Tài Khoản</span></div>
+        </label>
+        <label class="flex items-start space-x-3 p-3 rounded-2xl hover:bg-slate-100 dark:hover:bg-slate-800/60 border border-slate-200 dark:border-slate-800 cursor-pointer transition">
+          <input type="checkbox" id="chk-manage_settings" class="perm-chk mt-0.5 rounded border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-emerald-500 w-4 h-4">
+          <div><span class="font-bold text-xs text-slate-800 dark:text-slate-200">Cài Đặt Hệ Thống & Tiêu Chí ĐG</span></div>
+        </label>
+      </div>
+      <div class="flex justify-end gap-2.5 pt-3.5 border-t border-slate-200 dark:border-slate-800">
+        <button type="button" onclick="closeModal('modal-permissions')" class="btn-fixed-layout bg-slate-200 dark:bg-slate-800 text-slate-800 dark:text-slate-300 hover:bg-slate-300 dark:hover:bg-slate-700 transition">Hủy</button>
+        <button type="button" onclick="saveUserPermissions()" class="btn-fixed-layout bg-emerald-600 text-white hover:bg-emerald-500 transition">Lưu Quyền</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="modal-employee" class="fixed inset-0 bg-slate-900/40 dark:bg-slate-950/80 backdrop-blur-xl z-50 flex items-center justify-center p-4 hidden">
+    <div class="bg-white dark:bg-slate-900 rounded-3xl shadow-2xl max-w-sm w-full p-6 space-y-4 border border-slate-200 dark:border-slate-800 text-slate-900 dark:text-slate-100">
+      <h3 id="emp-modal-title" class="font-bold border-b border-slate-200 dark:border-slate-800 pb-3 text-sm">Cập Nhật Thông Tin Nhân Sự</h3>
+      <form onsubmit="handleSaveEmployee(event)" class="space-y-3.5">
+        <input type="hidden" id="emp-edit-index">
+        <div><label class="block text-[11px] font-bold text-slate-700 dark:text-slate-300 uppercase mb-1.5">Mã NV / Tên Đăng Nhập</label><input type="text" id="emp-code" required class="w-full px-4 py-3 bg-slate-50 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-2xl text-xs text-slate-900 dark:text-slate-100 focus:outline-none font-medium"></div>
+        <div><label class="block text-[11px] font-bold text-slate-700 dark:text-slate-300 uppercase mb-1.5">Họ và Tên</label><input type="text" id="emp-name" required class="w-full px-4 py-3 bg-slate-50 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-2xl text-xs text-slate-900 dark:text-slate-100 focus:outline-none font-medium"></div>
+        <div><label class="block text-[11px] font-bold text-slate-700 dark:text-slate-300 uppercase mb-1.5">Phòng ban</label><select id="emp-dept" required class="w-full px-4 py-3 bg-slate-50 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-2xl text-xs text-slate-900 dark:text-slate-100 focus:outline-none font-medium"></select></div>
+        <div><label class="block text-[11px] font-bold text-slate-700 dark:text-slate-300 uppercase mb-1.5">Chức vụ</label><input type="text" id="emp-role" required class="w-full px-4 py-3 bg-slate-50 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-2xl text-xs text-slate-900 dark:text-slate-100 focus:outline-none font-medium"></div>
+        <div><label class="block text-[11px] font-bold text-slate-700 dark:text-slate-300 uppercase mb-1.5">Mật khẩu đăng nhập</label><input type="text" id="emp-pass" required class="w-full px-4 py-3 bg-slate-50 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-2xl text-xs text-slate-900 dark:text-slate-100 focus:outline-none font-medium"></div>
+        <div class="flex justify-end gap-2.5 pt-3.5 border-t border-slate-200 dark:border-slate-800">
+          <button type="button" onclick="closeModal('modal-employee')" class="btn-fixed-layout bg-slate-200 dark:bg-slate-800 text-slate-800 dark:text-slate-300 hover:bg-slate-300 dark:hover:bg-slate-700 transition">Hủy</button>
+          <button type="submit" class="btn-fixed-layout bg-emerald-600 text-white hover:bg-emerald-500 transition">Lưu Thông Tin</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <div id="modal-criteria" class="fixed inset-0 bg-slate-900/40 dark:bg-slate-950/80 backdrop-blur-xl z-50 flex items-center justify-center p-4 hidden">
+    <div class="bg-white dark:bg-slate-900 rounded-3xl shadow-2xl max-w-sm w-full p-6 space-y-4 border border-slate-200 dark:border-slate-800 text-slate-900 dark:text-slate-100">
+      <h3 id="criteria-modal-title" class="font-bold border-b border-slate-200 dark:border-slate-800 pb-3 text-sm">Thêm / Sửa Tiêu Chí</h3>
+      <form onsubmit="handleSaveCriteria(event)" class="space-y-3.5">
+        <input type="hidden" id="criteria-edit-id">
+        <div><label class="block text-[11px] font-bold text-slate-700 dark:text-slate-300 uppercase mb-1.5">Mã Tiêu Chí (không dấu)</label><input type="text" id="crit-id" required class="w-full px-4 py-3 bg-slate-50 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-2xl text-xs text-slate-900 dark:text-slate-100 focus:outline-none font-medium"></div>
+        <div><label class="block text-[11px] font-bold text-slate-700 dark:text-slate-300 uppercase mb-1.5">Tên Tiêu Chí</label><input type="text" id="crit-name" required class="w-full px-4 py-3 bg-slate-50 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-2xl text-xs text-slate-900 dark:text-slate-100 focus:outline-none font-medium"></div>
+        <div><label class="block text-[11px] font-bold text-slate-700 dark:text-slate-300 uppercase mb-1.5">Trọng Số (%)</label><input type="number" min="1" max="100" id="crit-weight" required class="w-full px-4 py-3 bg-slate-50 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-2xl text-xs text-slate-900 dark:text-slate-100 focus:outline-none font-medium"></div>
+        <div class="flex justify-end gap-2.5 pt-3.5 border-t border-slate-200 dark:border-slate-800">
+          <button type="button" onclick="closeModal('modal-criteria')" class="btn-fixed-layout bg-slate-200 dark:bg-slate-800 text-slate-800 dark:text-slate-300 hover:bg-slate-300 dark:hover:bg-slate-700 transition">Hủy</button>
+          <button type="submit" class="btn-fixed-layout bg-emerald-600 text-white hover:bg-emerald-500 transition">Lưu Tiêu Chí</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <div id="modal-review" class="fixed inset-0 bg-slate-900/40 dark:bg-slate-950/80 backdrop-blur-xl z-50 flex items-center justify-center p-4 hidden">
+    <div class="bg-white dark:bg-slate-900 rounded-3xl shadow-2xl max-w-md w-full p-6 space-y-4 border border-slate-200 dark:border-slate-800 text-slate-900 dark:text-slate-100">
+      <h3 id="modal-review-title" class="font-bold border-b border-slate-200 dark:border-slate-800 pb-3 text-sm">Đánh Giá Hiệu Suất Nhân Viên</h3>
+      <form onsubmit="handleSaveReview(event)" class="space-y-3.5">
+        <input type="hidden" id="review-edit-id">
+        <div class="grid grid-cols-2 gap-3">
+          <div><label class="block text-[11px] font-bold text-slate-700 dark:text-slate-300 uppercase mb-1.5">Chọn Nhân viên</label><select id="review-emp-id" required class="w-full px-3.5 py-3 bg-slate-50 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-2xl text-xs text-slate-900 dark:text-slate-100 focus:outline-none font-medium"></select></div>
+          <div><label class="block text-[11px] font-bold text-slate-700 dark:text-slate-300 uppercase mb-1.5">Kỳ đánh giá</label><select id="review-period" required class="w-full px-3.5 py-3 bg-slate-50 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-2xl text-xs text-slate-900 dark:text-slate-100 focus:outline-none font-medium"><option value="ngày">Theo Ngày</option><option value="tháng">Tổng Tháng</option><option value="quý">Tổng Quý</option><option value="năm">Tổng Năm</option></select></div>
+        </div>
+        <div id="dynamic-scores-container" class="grid grid-cols-2 gap-3.5 pt-3 border-t border-slate-200 dark:border-slate-800"></div>
+        <div><label class="block text-[11px] font-bold text-slate-700 dark:text-slate-300 uppercase mb-1.5">Ghi chú / Nhận xét</label><textarea id="review-note" rows="2" class="w-full px-4 py-3 bg-slate-50 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-2xl text-xs text-slate-900 dark:text-slate-100 focus:outline-none font-medium"></textarea></div>
+        <div class="flex justify-end gap-2.5 pt-3.5 border-t border-slate-200 dark:border-slate-800">
+          <button type="button" onclick="closeModal('modal-review')" class="btn-fixed-layout bg-slate-200 dark:bg-slate-800 text-slate-800 dark:text-slate-300 hover:bg-slate-300 dark:hover:bg-slate-700 transition">Hủy</button>
+          <button type="submit" class="btn-fixed-layout bg-emerald-600 text-white hover:bg-emerald-500 transition">Lưu Đánh Giá</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <div id="modal-department" class="fixed inset-0 bg-slate-900/40 dark:bg-slate-950/80 backdrop-blur-xl z-50 flex items-center justify-center p-4 hidden">
+    <div class="bg-white dark:bg-slate-900 rounded-3xl shadow-2xl max-w-sm w-full p-6 space-y-4 border border-slate-200 dark:border-slate-800 text-slate-900 dark:text-slate-100">
+      <h3 class="font-bold border-b border-slate-200 dark:border-slate-800 pb-3 text-sm">Thêm / Sửa Phòng Ban</h3>
+      <form onsubmit="handleSaveDepartment(event)" class="space-y-3.5">
+        <input type="hidden" id="dept-edit-index">
+        <div><label class="block text-[11px] font-bold text-slate-700 dark:text-slate-300 uppercase mb-1.5">Tên Phòng Ban</label><input type="text" id="dept-name" required class="w-full px-4 py-3 bg-slate-50 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-2xl text-xs text-slate-900 dark:text-slate-100 focus:outline-none font-medium"></div>
+        <div class="flex justify-end gap-2.5 pt-3.5 border-t border-slate-200 dark:border-slate-800">
+          <button type="button" onclick="closeModal('modal-department')" class="btn-fixed-layout bg-slate-200 dark:bg-slate-800 text-slate-800 dark:text-slate-300 hover:bg-slate-300 dark:hover:bg-slate-700 transition">Hủy</button>
+          <button type="submit" class="btn-fixed-layout bg-emerald-600 text-white hover:bg-emerald-500 transition">Lưu</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <script>
+    const DEFAULT_COMPANY = "CÔNG TY TNHH MTV TM & DV ĐA TUẤN THÀNH";
+    const ALL_PERMISSIONS = [
+      'view_dashboard', 'view_own_result_only', 'export_print_all', 'view_analytics', 'view_all_reviews', 'edit_reviews',
+      'view_employees', 'edit_employees', 'view_departments', 'manage_permissions', 'manage_settings'
+    ];
+
+    let state = {
+      companyName: localStorage.getItem('companyName') || DEFAULT_COMPANY,
+      darkMode: localStorage.getItem('darkMode') === 'true',
+      currentUser: null,
+      departments: JSON.parse(localStorage.getItem('departments')) || ["Ban Giám Đốc", "Phòng Kinh Doanh", "Phòng Kế Toán", "Khối Vận Hành"],
+      criteria: JSON.parse(localStorage.getItem('criteria')) || [
+        { id: 'attitude', name: 'Thái độ làm việc', weight: 30 },
+        { id: 'completion', name: 'Tỷ lệ hoàn thành', weight: 40 },
+        { id: 'honesty', name: 'Sự trung thực', weight: 15 },
+        { id: 'capacity', name: 'Năng lực chuyên môn', weight: 15 }
+      ],
+      employees: JSON.parse(localStorage.getItem('employees')) || [
+        { code: "NV001", name: "Nguyễn Lê Uyên", dept: "Phòng Kinh Doanh", role: "Chuyên viên tư vấn", pass: "123456", permissions: ['view_dashboard', 'view_own_result_only'] },
+        { code: "NV002", name: "Trần Văn Thọ", dept: "Khối Vận Hành", role: "Quản lý kho", pass: "123456", permissions: ['view_dashboard', 'view_all_reviews', 'edit_reviews', 'export_print_all'] }
+      ],
+      reviews: JSON.parse(localStorage.getItem('reviews')) || [
+        { 
+          id: 1, empCode: "NV001", period: "tháng", 
+          scores: { attitude: 9, completion: 9.5, honesty: 10, capacity: 8.5 }, 
+          score: 9.15, note: "Hoàn thành xuất sắc chỉ tiêu", 
+          date: "2026-10-24", timestamp: "2026-10-24 14:20:00",
+          editHistory: [
+            { time: "2026-10-24 14:20:00", by: "Quản Trị Viên Gốc", note: "Khởi tạo bản đánh giá" }
+          ] 
+        }
+      ]
+    };
+
+    let chartDeptInstance = null;
+    let chartRanksInstance = null;
+    let filteredLeaderboardData = [];
+    let selectedEmployeeCodes = [];
+
+    function toggleDarkMode() {
+      state.darkMode = !state.darkMode;
+      localStorage.setItem('darkMode', state.darkMode);
+      applyDarkMode();
+      showToast(state.darkMode ? "Đã chuyển sang chế độ Tối (Dark Mode)" : "Đã chuyển sang chế độ Sáng (Light Mode)");
+    }
+
+    function applyDarkMode() {
+      const htmlEl = document.documentElement;
+      if (state.darkMode) {
+        htmlEl.classList.add('dark');
+      } else {
+        htmlEl.classList.remove('dark');
+      }
+    }
+
+    function showToast(msg, type = 'success') {
+      const container = document.getElementById('toast-container');
+      const toast = document.createElement('div');
+      let icon = type === 'error' ? 'fa-circle-xmark text-rose-500 dark:text-rose-400' : 'fa-circle-check text-emerald-600 dark:text-emerald-400';
+      let bgBorder = type === 'error' ? 'bg-white dark:bg-slate-900/90 border-rose-500/30' : 'bg-white dark:bg-slate-900/90 border-emerald-500/30';
+
+      toast.className = `pointer-events-auto flex items-center gap-3 p-4 rounded-2xl border shadow-2xl backdrop-blur-xl text-xs font-semibold text-slate-900 dark:text-slate-100 animate-toast ${bgBorder}`;
+      toast.innerHTML = `<i class="fa-solid ${icon} text-base"></i> <span>${msg}</span>`;
+
+      container.appendChild(toast);
+      setTimeout(() => {
+        toast.style.opacity = '0';
+        toast.style.transition = 'all 0.3s ease';
+        setTimeout(() => toast.remove(), 300);
+      }, 3000);
+    }
+
+    function showConfirmModal(title, msg, onConfirm) {
+      const modal = document.getElementById('modal-confirm');
+      document.getElementById('confirm-title').innerText = title;
+      document.getElementById('confirm-message').innerText = msg;
+      modal.classList.remove('hidden');
+
+      const btnOk = document.getElementById('btn-confirm-ok');
+      const btnCancel = document.getElementById('btn-confirm-cancel');
+
+      const cleanup = () => {
+        modal.classList.add('hidden');
+        btnOk.onclick = null;
+        btnCancel.onclick = null;
+      };
+
+      btnOk.onclick = () => { cleanup(); onConfirm(); };
+      btnCancel.onclick = () => cleanup();
+    }
+
+    function saveData() {
+      localStorage.setItem('companyName', state.companyName);
+      localStorage.setItem('departments', JSON.stringify(state.departments));
+      localStorage.setItem('criteria', JSON.stringify(state.criteria));
+      localStorage.setItem('employees', JSON.stringify(state.employees));
+      localStorage.setItem('reviews', JSON.stringify(state.reviews));
+    }
+
+    function getCurrentTimestamp() {
+      const d = new Date();
+      const pad = (n) => n.toString().padStart(2, '0');
+      return `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())} ${pad(d.getHours())}:${pad(d.getMinutes())}:${pad(d.getSeconds())}`;
+    }
+
+    window.addEventListener('DOMContentLoaded', () => {
+      applyDarkMode();
+      const savedBg = localStorage.getItem('customBgImage');
+      if (savedBg) {
+        applyCustomBg(savedBg);
+      }
+      const savedUser = localStorage.getItem('remembered_username');
+      if (savedUser) {
+        document.getElementById('login-username').value = savedUser;
+        document.getElementById('remember-me').checked = true;
+      }
+    });
+
+    function handleBgUpload(e) {
+      const file = e.target.files[0];
+      if (file) {
+        const reader = new FileReader();
+        reader.onload = function(evt) {
+          const base64Img = evt.target.result;
+          localStorage.setItem('customBgImage', base64Img);
+          applyCustomBg(base64Img);
+          showToast("Đã tải và áp dụng ảnh nền từ tệp!");
+        };
+        reader.readAsDataURL(file);
+      }
+    }
+
+    function handleBgUrlSubmit() {
+      const url = document.getElementById('bg-url-input').value.trim();
+      if (!url) {
+        showToast("Vui lòng nhập đường dẫn ảnh!", "error");
+        return;
+      }
+      localStorage.setItem('customBgImage', url);
+      applyCustomBg(url);
+      document.getElementById('bg-url-input').value = '';
+      showToast("Đã áp dụng ảnh nền từ đường link!");
+    }
+
+    function applyCustomBg(imgUrl) {
+      document.documentElement.style.setProperty('--bg-custom-image', `url("${imgUrl}")`);
+    }
+
+    function resetBgImage() {
+      localStorage.removeItem('customBgImage');
+      document.documentElement.style.setProperty('--bg-custom-image', 'none');
+      showToast("Đã xóa ảnh nền tùy chỉnh.");
+    }
+
+    function switchAuthTab(tab) {
+      document.getElementById('login-form').classList.toggle('hidden', tab !== 'login');
+      document.getElementById('register-form').classList.toggle('hidden', tab !== 'register');
+      document.getElementById('tab-btn-login').className = tab === 'login' ? "flex-1 py-2.5 text-xs font-bold rounded-xl transition-all bg-emerald-600 text-white shadow-md" : "flex-1 py-2.5 text-xs font-bold rounded-xl transition-all text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200";
+      document.getElementById('tab-btn-register').className = tab === 'register' ? "flex-1 py-2.5 text-xs font-bold rounded-xl transition-all bg-emerald-600 text-white shadow-md" : "flex-1 py-2.5 text-xs font-bold rounded-xl transition-all text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200";
+      if(tab === 'register') {
+        document.getElementById('reg-dept').innerHTML = state.departments.map(d => `<option value="${d}">${d}</option>`).join('');
+      }
+    }
+
+    function handleLogin(e) {
+      e.preventDefault();
+      const u = document.getElementById('login-username').value.trim();
+      const p = document.getElementById('login-password').value.trim();
+      if (document.getElementById('remember-me').checked) localStorage.setItem('remembered_username', u);
+      else localStorage.removeItem('remembered_username');
+
+      if (u.toLowerCase() === 'admin' && p === 'admin') {
+        state.currentUser = { code: 'ADMIN', name: 'Quản Trị Viên Gốc', permissions: [...ALL_PERMISSIONS] };
+      } else {
+        const emp = state.employees.find(e => e.code.toLowerCase() === u.toLowerCase() && e.pass === p);
+        if (emp) {
+          state.currentUser = { code: emp.code, name: emp.name, dept: emp.dept, role: emp.role, permissions: emp.permissions || ['view_dashboard', 'view_own_result_only'] };
+        } else {
+          showToast('Đăng nhập thất bại: Sai mã nhân viên hoặc mật khẩu!', 'error');
+          return;
+        }
+      }
+
+      document.getElementById('auth-modal').classList.add('hidden');
+      document.getElementById('app').classList.remove('hidden');
+      setupRoleUI();
+      updateCompanyHeaderUI();
+      renderAll();
+      showToast(`Xin chào, ${state.currentUser.name}!`);
+    }
+
+    function handleRegister(e) {
+      e.preventDefault();
+      const code = document.getElementById('reg-code').value.trim();
+      if(state.employees.some(emp => emp.code === code)) {
+        showToast("Mã NV này đã tồn tại!", "error");
+        return;
+      }
+      const newEmp = {
+        code, name: document.getElementById('reg-name').value.trim(),
+        dept: document.getElementById('reg-dept').value, role: "Nhân viên",
+        pass: document.getElementById('reg-pass').value.trim(), permissions: ['view_dashboard', 'view_own_result_only']
+      };
+      state.employees.push(newEmp);
+      saveData();
+      showToast("Đăng ký tài khoản thành công!");
+      switchAuthTab('login');
+      document.getElementById('login-username').value = code;
+      document.getElementById('login-password').value = newEmp.pass;
+    }
+
+    function openForgotPasswordModal() {
+      document.getElementById('forgot-code').value = '';
+      document.getElementById('forgot-new-pass').value = '';
+      document.getElementById('modal-forgot-pass').classList.remove('hidden');
+    }
+
+    function handleResetPassword(e) {
+      e.preventDefault();
+      const code = document.getElementById('forgot-code').value.trim();
+      const newPass = document.getElementById('forgot-new-pass').value.trim();
+
+      if (code.toLowerCase() === 'admin') {
+        showToast("Tài khoản Quản trị gốc (admin) không thể đặt lại mật khẩu bằng tính năng này.", "error");
+        return;
+      }
+
+      const emp = state.employees.find(e => e.code.toLowerCase() === code.toLowerCase());
+      if (!emp) {
+        showToast("Không tìm thấy mã nhân viên này trong hệ thống!", "error");
+        return;
+      }
+
+      emp.pass = newPass;
+      saveData();
+      closeModal('modal-forgot-pass');
+      showToast("Đặt lại mật khẩu thành công! Bạn có thể đăng nhập bằng mật khẩu mới.");
+      document.getElementById('login-username').value = emp.code;
+      document.getElementById('login-password').value = newPass;
+    }
+
+    function openChangeMyPasswordModal() {
+      if (state.currentUser.code === 'ADMIN') {
+        showToast("Tài khoản Admin quản trị gốc không hỗ trợ đổi mật khẩu tại đây.", "error");
+        return;
+      }
+      document.getElementById('my-old-pass').value = '';
+      document.getElementById('my-new-pass').value = '';
+      document.getElementById('modal-change-my-pass').classList.remove('hidden');
+    }
+
+    function handleChangeMyPassword(e) {
+      e.preventDefault();
+      const oldPass = document.getElementById('my-old-pass').value.trim();
+      const newPass = document.getElementById('my-new-pass').value.trim();
+
+      const emp = state.employees.find(e => e.code === state.currentUser.code);
+      if (!emp || emp.pass !== oldPass) {
+        showToast("Mật khẩu cũ không chính xác!", "error");
+        return;
+      }
+
+      emp.pass = newPass;
+      saveData();
+      closeModal('modal-change-my-pass');
+      showToast("Đã đổi mật khẩu cá nhân thành công!");
+    }
+
+    function handleLogout() {
+      state.currentUser = null;
+      document.getElementById('app').classList.add('hidden');
+      document.getElementById('auth-modal').classList.remove('hidden');
+      showToast("Đã đăng xuất khỏi hệ thống");
+    }
+
+    function hasPermission(p) {
+      return state.currentUser && state.currentUser.permissions && state.currentUser.permissions.includes(p);
+    }
+
+    function setupRoleUI() {
+      ALL_PERMISSIONS.forEach(p => {
+        const els = document.querySelectorAll(`.perm-${p}`);
+        els.forEach(el => el.style.display = hasPermission(p) ? '' : 'none');
+      });
+      document.getElementById('user-display-name').innerText = state.currentUser.name;
+      document.getElementById('user-display-role').innerText = state.currentUser.code === 'ADMIN' ? 'Quản trị viên' : `${state.currentUser.permissions.length} quyền`;
+      document.getElementById('user-avatar').innerText = state.currentUser.name.charAt(0);
+      
+      if (hasPermission('view_own_result_only') && !hasPermission('view_all_reviews')) {
+        switchTab('my-result');
+      } else if (hasPermission('view_dashboard')) {
+        switchTab('dashboard');
+      } else {
+        switchTab('my-result');
+      }
+    }
+
+    function updateCompanyHeaderUI() {
+      document.getElementById('login-company-name').innerText = state.companyName;
+      document.getElementById('sidebar-company-name').innerText = state.companyName;
+      document.getElementById('header-company-sub').innerText = state.companyName;
+      document.getElementById('app-title').innerText = state.companyName + " - Đánh Giá";
+      document.getElementById('setting-company-name').value = state.companyName;
+    }
+
+    function saveCompanySettings(e) {
+      e.preventDefault();
+      state.companyName = document.getElementById('setting-company-name').value.trim();
+      saveData();
+      updateCompanyHeaderUI();
+      showToast("Đã cập nhật tên công ty!");
+    }
+
+    function switchTab(tabId) {
+      ['dashboard', 'analytics', 'users', 'departments', 'reviews', 'criteria', 'my-result', 'rules', 'settings'].forEach(t => {
+        const el = document.getElementById(`tab-${t}`);
+        const nav = document.getElementById(`nav-${t}`);
+        if (el) el.classList.add('hidden');
+        if (nav) {
+          nav.classList.remove('bg-emerald-600', 'text-white', 'shadow-lg', 'shadow-emerald-600/20');
+          nav.classList.add('text-slate-600', 'dark:text-slate-400');
+        }
+      });
+      document.getElementById(`tab-${tabId}`).classList.remove('hidden');
+      const activeNav = document.getElementById(`nav-${tabId}`);
+      if (activeNav) {
+        activeNav.classList.add('bg-emerald-600', 'text-white', 'shadow-lg', 'shadow-emerald-600/20');
+        activeNav.classList.remove('text-slate-600', 'dark:text-slate-400');
+      }
+      if (tabId === 'analytics') renderCharts();
+      if (tabId === 'my-result') renderProfileUI();
+    }
+
+    function renderProfileUI() {
+      if (!state.currentUser) return;
+      document.getElementById('my-profile-name').innerText = state.currentUser.name;
+      document.getElementById('my-profile-avatar').innerText = state.currentUser.name.charAt(0);
+      if (state.currentUser.code === 'ADMIN') {
+        document.getElementById('my-profile-sub').innerText = "Tài khoản Quản trị hệ thống cấp cao";
+      } else {
+        const emp = state.employees.find(e => e.code === state.currentUser.code);
+        document.getElementById('my-profile-sub').innerText = `Mã NV: ${emp.code} • Phòng ban: ${emp.dept} • Chức vụ: ${emp.role}`;
+      }
+    }
+
+    function renderAll() {
+      renderDashboardStats();
+      applyLeaderboardFilter();
+      renderUsers();
+      renderDepartments();
+      renderCriteria();
+      renderReviewsHeaders();
+      renderReviews();
+      renderMyReviews();
+      renderProfileUI();
+    }
+
+    function renderDashboardStats() {
+      document.getElementById('stat-total-emp').innerText = state.employees.length;
+      document.getElementById('stat-total-reviews').innerText = state.reviews.length;
+      if (state.reviews.length === 0) {
+        document.getElementById('stat-avg-score').innerText = "0.0 / 10";
+        document.getElementById('stat-excellent-count').innerText = "0";
+        return;
+      }
+      const total = state.reviews.reduce((acc, r) => acc + r.score, 0);
+      document.getElementById('stat-avg-score').innerText = `${(total / state.reviews.length).toFixed(2)} / 10`;
+      
+      const excellentEmployees = state.employees.filter(emp => {
+        const empRevs = state.reviews.filter(r => r.empCode === emp.code);
+        if (empRevs.length === 0) return false;
+        const avg = empRevs.reduce((a, b) => a + b.score, 0) / empRevs.length;
+        return avg >= 8.5;
+      });
+      document.getElementById('stat-excellent-count').innerText = excellentEmployees.length;
+    }
+
+    function applyLeaderboardFilter() {
+      const keyword = document.getElementById('filter-search').value.toLowerCase().trim();
+      const fromDate = document.getElementById('filter-from-date').value;
+      const toDate = document.getElementById('filter-to-date').value;
+      const periodType = document.getElementById('filter-period-type').value;
+
+      let validReviews = state.reviews.filter(r => {
+        let match = true;
+        if (fromDate && r.date < fromDate) match = false;
+        if (toDate && r.date > toDate) match = false;
+        if (periodType && r.period !== periodType) match = false;
+        return match;
+      });
+
+      let listEmployees = state.employees;
+
+      filteredLeaderboardData = listEmployees.map(emp => {
+        const empRevs = validReviews.filter(r => r.empCode === emp.code);
+        const count = empRevs.length;
+        const avgScore = count > 0 ? (empRevs.reduce((a, b) => a + b.score, 0) / count) : 0;
+        return { ...emp, count, avgScore, reviews: empRevs };
+      });
+
+      if (keyword) {
+        filteredLeaderboardData = filteredLeaderboardData.filter(item => 
+          item.name.toLowerCase().includes(keyword) || item.code.toLowerCase().includes(keyword)
+        );
+      }
+
+      filteredLeaderboardData.sort((a, b) => b.avgScore - a.avgScore);
+
+      document.getElementById('filter-result-count').innerText = `Hiển thị ${filteredLeaderboardData.length} nhân sự trên bảng xếp hạng`;
+      renderLeaderboardTable();
+    }
+
+    function resetLeaderboardFilter() {
+      document.getElementById('filter-search').value = '';
+      document.getElementById('filter-from-date').value = '';
+      document.getElementById('filter-to-date').value = '';
+      document.getElementById('filter-period-type').value = '';
+      selectedEmployeeCodes = [];
+      updateFloatingActionBar();
+      applyLeaderboardFilter();
+      showToast("Đã đặt lại bộ lọc!");
+    }
+
+    function renderLeaderboardTable() {
+      const tbody = document.getElementById('leaderboard-tbody');
+      tbody.innerHTML = '';
+
+      if (filteredLeaderboardData.length === 0) {
+        tbody.innerHTML = `<tr><td colspan="8" class="p-6 text-center text-slate-500 font-medium">Không tìm thấy nhân sự phù hợp với điều kiện lọc.</td></tr>`;
+        return;
+      }
+
+      filteredLeaderboardData.forEach((item, index) => {
+        let badgeClass = "bg-slate-200 dark:bg-slate-800 text-slate-700 dark:text-slate-300 border border-slate-300 dark:border-slate-700";
+        if (index === 0) badgeClass = "bg-amber-500/20 text-amber-600 dark:text-amber-300 font-extrabold border border-amber-500/40 shadow-sm";
+        if (index === 1) badgeClass = "bg-slate-300/40 dark:bg-slate-300/20 text-slate-800 dark:text-slate-200 font-extrabold border border-slate-400/40 shadow-sm";
+        if (index === 2) badgeClass = "bg-orange-500/20 text-orange-600 dark:text-orange-300 font-extrabold border border-orange-500/40 shadow-sm";
+
+        let rankType = "<span class='text-slate-500 italic font-normal'>Chưa có ĐG</span>";
+        if (item.count > 0) {
+          if (item.avgScore >= 8.5) rankType = "<span class='px-3 py-1 rounded-xl bg-emerald-500/20 border border-emerald-500/30 text-emerald-600 dark:text-emerald-400 font-bold'>A - Xuất Sắc</span>";
+          else if (item.avgScore >= 7.0) rankType = "<span class='px-3 py-1 rounded-xl bg-blue-500/20 border border-blue-500/30 text-blue-600 dark:text-blue-400 font-bold'>B - Khá/Tốt</span>";
+          else if (item.avgScore >= 5.0) rankType = "<span class='px-3 py-1 rounded-xl bg-amber-500/20 border border-amber-500/30 text-amber-600 dark:text-amber-400 font-bold'>C - Trung Bình</span>";
+          else rankType = "<span class='px-3 py-1 rounded-xl bg-rose-500/20 border border-rose-500/30 text-rose-600 dark:text-rose-400 font-bold'>D - Yếu</span>";
+        }
+
+        let isChecked = selectedEmployeeCodes.includes(item.code) ? 'checked' : '';
+
+        tbody.innerHTML += `
+          <tr onclick="openEmployeeDetailModal('${item.code}')" class="hover:bg-slate-100 dark:hover:bg-slate-800/60 cursor-pointer transition-colors" title="Nhấp để xem chi tiết lịch sử đánh giá">
+            <td class="py-4 px-4 text-center" onclick="event.stopPropagation()">
+              <input type="checkbox" value="${item.code}" ${isChecked} onchange="toggleSelectEmployee(this)" class="row-checkbox rounded border-slate-300 dark:border-slate-700 text-emerald-500 w-4 h-4 cursor-pointer">
+            </td>
+            <td class="py-4 px-4"><span class="w-7 h-7 rounded-xl inline-flex items-center justify-center text-xs ${badgeClass}">${index + 1}</span></td>
+            <td class="py-4 px-4 font-bold text-slate-900 dark:text-white hover:text-emerald-600 dark:hover:text-emerald-400 transition">${item.name} <span class="text-[11px] text-slate-500 dark:text-slate-400 font-normal">(${item.code})</span></td>
+            <td class="py-4 px-4 text-slate-700 dark:text-slate-300 font-semibold">${item.dept}</td>
+            <td class="py-4 px-4 text-center font-bold text-slate-700 dark:text-slate-300">${item.count}</td>
+            <td class="py-4 px-4 text-center font-extrabold text-emerald-600 dark:text-emerald-400">${item.avgScore > 0 ? item.avgScore.toFixed(2) : '-'}</td>
+            <td class="py-4 px-4 text-right">${rankType}</td>
+            <td class="py-4 px-4 text-right space-x-1" onclick="event.stopPropagation()">
+              <button onclick="exportSingleEmployeeExcel('${item.code}')" class="px-2.5 py-1 bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 rounded-xl text-[11px] font-bold" title="Xuất Excel cá nhân"><i class="fa-solid fa-file-excel"></i></button>
+              <button onclick="openPrintPreviewModal('${item.code}')" class="px-2.5 py-1 bg-blue-500/10 hover:bg-blue-500/20 text-blue-600 dark:text-blue-400 rounded-xl text-[11px] font-bold" title="Xem trước bản in"><i class="fa-solid fa-print"></i></button>
+            </td>
+          </tr>
+        `;
+      });
+      updateFloatingActionBar();
+    }
+
+    function toggleSelectAll(master) {
+      const checkboxes = document.querySelectorAll('.row-checkbox');
+      selectedEmployeeCodes = [];
+      checkboxes.forEach(chk => {
+        chk.checked = master.checked;
+        if (master.checked) {
+          selectedEmployeeCodes.push(chk.value);
+        }
+      });
+      updateFloatingActionBar();
+    }
+
+    function toggleSelectEmployee(chk) {
+      if (chk.checked) {
+        if (!selectedEmployeeCodes.includes(chk.value)) selectedEmployeeCodes.push(chk.value);
+      } else {
+        selectedEmployeeCodes = selectedEmployeeCodes.filter(c => c !== chk.value);
+        document.getElementById('select-all-checkbox').checked = false;
+      }
+      updateFloatingActionBar();
+    }
+
+    function updateFloatingActionBar() {
+      const bar = document.getElementById('floating-action-bar');
+      const countText = document.getElementById('selected-count-text');
+      const badge = document.getElementById('selected-count-badge');
+      const count = selectedEmployeeCodes.length;
+
+      countText.innerText = count;
+      badge.innerText = count;
+      if (count > 0) {
+        bar.classList.remove('hidden');
+      } else {
+        bar.classList.add('hidden');
+      }
+    }
+
+    function handleBatchPrint() {
+      if (!hasPermission('export_print_all') && state.currentUser.code !== 'ADMIN') {
+        showToast("Bạn không có quyền in hàng loạt!", "error");
+        return;
+      }
+      if (selectedEmployeeCodes.length === 0) {
+        showToast("Vui lòng tích chọn ít nhất 1 nhân viên để in!", "error");
+        return;
+      }
+      openPrintPreviewModal('batch');
+    }
+
+    function handleBatchExcel() {
+      if (!hasPermission('export_print_all') && state.currentUser.code !== 'ADMIN') {
+        showToast("Bạn không có quyền xuất Excel tổng!", "error");
+        return;
+      }
+      if (selectedEmployeeCodes.length === 0) {
+        showToast("Vui lòng tích chọn ít nhất 1 nhân viên để xuất Excel!", "error");
+        return;
+      }
+      let csv = "\ufeffHạng,Mã NV,Họ và Tên,Phòng Ban,Số Lượt ĐG,Điểm TB,Xếp Loại\n";
+      filteredLeaderboardData.filter(item => selectedEmployeeCodes.includes(item.code)).forEach((item, idx) => {
+        csv += `${idx+1},${item.code},"${item.name}","${item.dept}",${item.count},${item.avgScore.toFixed(2)},"${item.avgScore >= 8.5 ? 'A' : item.avgScore >= 7 ? 'B' : item.avgScore >= 5 ? 'C' : 'D'}"\n`;
+      });
+      downloadCsv(csv, "DanhSachNhanVien_ChonIn.csv");
+      showToast(`Đã xuất Excel cho ${selectedEmployeeCodes.length} nhân viên được chọn!`);
+    }
+
+    function toggleSelectAllPerms(master) {
+      const chks = document.querySelectorAll('.perm-chk');
+      chks.forEach(chk => chk.checked = master.checked);
+    }
+
+    function closeModal(id) {
+      document.getElementById(id).classList.add('hidden');
+    }
+
+    function openEmployeeDetailModal(empCode) {
+      if (hasPermission('view_own_result_only') && !hasPermission('view_all_reviews') && state.currentUser.code !== 'ADMIN' && state.currentUser.code !== empCode) {
+        showToast("Bạn chỉ có quyền xem chi tiết kết quả của chính mình!", "error");
+        return;
+      }
+      const emp = state.employees.find(e => e.code === empCode);
+      if (!emp) return;
+      document.getElementById('emp-detail-title').innerText = `Lịch Sử Đánh Giá: ${emp.name} (${emp.code})`;
+      document.getElementById('emp-detail-sub').innerText = `Phòng ban: ${emp.dept} - Chức vụ: ${emp.role}`;
+
+      const empRevs = state.reviews.filter(r => r.empCode === empCode);
+      const tbody = document.getElementById('emp-detail-tbody');
+      tbody.innerHTML = '';
+
+      if (empRevs.length === 0) {
+        tbody.innerHTML = `<tr><td colspan="5" class="p-6 text-center text-slate-500">Nhân viên này chưa có lịch sử đánh giá nào.</td></tr>`;
+      } else {
+        empRevs.forEach(r => {
+          let editCount = r.editHistory ? r.editHistory.length : 1;
+          tbody.innerHTML += `
+            <tr class="hover:bg-slate-100 dark:hover:bg-slate-800/40">
+              <td class="p-3 font-bold text-emerald-600 dark:text-emerald-400"><i class="fa-regular fa-clock mr-1.5"></i>${r.timestamp || r.date}</td>
+              <td class="p-3 uppercase font-bold text-xs">${r.period}</td>
+              <td class="p-3 text-center font-extrabold text-sm">${r.score.toFixed(2)}</td>
+              <td class="p-3"><button onclick="openEditHistoryModal(${r.id})" class="text-xs text-blue-600 dark:text-blue-400 hover:underline font-bold"><i class="fa-solid fa-clock-rotate-left mr-1"></i>${editCount} lần sửa</button></td>
+              <td class="p-3 text-right text-slate-500 italic">${r.note || '-'}</td>
+            </tr>
+          `;
+        });
+      }
+      document.getElementById('modal-emp-details').classList.remove('hidden');
+    }
+
+    function openEditHistoryModal(reviewId) {
+      const rev = state.reviews.find(r => r.id === reviewId);
+      if (!rev) return;
+      const list = document.getElementById('edit-history-list');
+      list.innerHTML = '';
+      if (!rev.editHistory || rev.editHistory.length === 0) {
+        list.innerHTML = `<p class="text-xs text-slate-500 text-center py-4">Chưa có lịch sử chỉnh sửa.</p>`;
+      } else {
+        rev.editHistory.forEach((h, idx) => {
+          list.innerHTML += `
+            <div class="p-3 rounded-2xl bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-xs space-y-1">
+              <div class="flex justify-between font-bold text-slate-700 dark:text-slate-300">
+                <span>Lần ${idx + 1}: ${h.by}</span>
+                <span class="text-[10px] text-slate-500">${h.time}</span>
+              </div>
+              <p class="text-slate-600 dark:text-slate-400 font-medium">Nội dung: ${h.note}</p>
+            </div>
+          `;
+        });
+      }
+      document.getElementById('modal-edit-history').classList.remove('hidden');
+    }
+
+    function renderUsers() {
+      const tbody = document.getElementById('users-tbody');
+      tbody.innerHTML = '';
+      state.employees.forEach((emp, index) => {
+        tbody.innerHTML += `
+          <tr class="hover:bg-slate-100 dark:hover:bg-slate-800/60">
+            <td class="p-4 font-bold text-slate-900 dark:text-white">${emp.code}</td>
+            <td class="p-4 font-bold">${emp.name}</td>
+            <td class="p-4">${emp.dept} <span class="text-slate-400">(${emp.role})</span></td>
+            <td class="p-4"><span class="px-2.5 py-1 bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 rounded-xl text-[10px] font-bold">${emp.permissions ? emp.permissions.length : 2} quyền</span></td>
+            <td class="p-4 text-right space-x-1">
+              <button onclick="openPermissionsModal(${index})" class="px-3 py-1.5 bg-blue-500/10 hover:bg-blue-500/20 text-blue-600 dark:text-blue-400 rounded-xl text-xs font-bold"><i class="fa-solid fa-shield-halved mr-1"></i>Phân quyền</button>
+              <button onclick="openEmployeeModal(${index})" class="px-3 py-1.5 bg-slate-200 dark:bg-slate-800 hover:bg-slate-300 dark:hover:bg-slate-700 rounded-xl text-xs font-bold"><i class="fa-solid fa-pen mr-1"></i>Sửa</button>
+              <button onclick="deleteEmployee(${index})" class="px-3 py-1.5 bg-rose-500/10 hover:bg-rose-500/20 text-rose-600 dark:text-rose-400 rounded-xl text-xs font-bold"><i class="fa-solid fa-trash"></i></button>
+            </td>
+          </tr>
+        `;
+      });
+    }
+
+    function openPermissionsModal(index) {
+      const emp = state.employees[index];
+      document.getElementById('perm-user-index').value = index;
+      document.getElementById('perm-user-title').innerText = `Phân Quyền: ${emp.name} (${emp.code})`;
+      
+      let allChecked = true;
+      ALL_PERMISSIONS.forEach(p => {
+        const chk = document.getElementById(`chk-${p}`);
+        const has = emp.permissions && emp.permissions.includes(p);
+        if (chk) chk.checked = has;
+        if (!has) allChecked = false;
+      });
+      document.getElementById('chk-select-all-perms').checked = allChecked;
+      document.getElementById('modal-permissions').classList.remove('hidden');
+    }
+
+    function saveUserPermissions() {
+      const index = parseInt(document.getElementById('perm-user-index').value);
+      const newPerms = [];
+      ALL_PERMISSIONS.forEach(p => {
+        const chk = document.getElementById(`chk-${p}`);
+        if (chk && chk.checked) newPerms.push(p);
+      });
+      state.employees[index].permissions = newPerms;
+      saveData();
+      closeModal('modal-permissions');
+      showToast("Đã cập nhật quyền thành công!");
+      renderUsers();
+    }
+
+    function openEmployeeModal(index = null) {
+      document.getElementById('emp-edit-index').value = index !== null ? index : '';
+      document.getElementById('emp-modal-title').innerText = index !== null ? "Sửa Thông Tin Nhân Sự" : "Thêm Nhân Sự Mới";
+      document.getElementById('emp-dept').innerHTML = state.departments.map(d => `<option value="${d}">${d}</option>`).join('');
+      if (index !== null) {
+        const emp = state.employees[index];
+        document.getElementById('emp-code').value = emp.code;
+        document.getElementById('emp-name').value = emp.name;
+        document.getElementById('emp-dept').value = emp.dept;
+        document.getElementById('emp-role').value = emp.role;
+        document.getElementById('emp-pass').value = emp.pass;
+      } else {
+        document.getElementById('emp-code').value = '';
+        document.getElementById('emp-name').value = '';
+        document.getElementById('emp-role').value = '';
+        document.getElementById('emp-pass').value = '123456';
+      }
+      document.getElementById('modal-employee').classList.remove('hidden');
+    }
+
+    function handleSaveEmployee(e) {
+      e.preventDefault();
+      const index = document.getElementById('emp-edit-index').value;
+      const empData = {
+        code: document.getElementById('emp-code').value.trim(),
+        name: document.getElementById('emp-name').value.trim(),
+        dept: document.getElementById('emp-dept').value,
+        role: document.getElementById('emp-role').value.trim(),
+        pass: document.getElementById('emp-pass').value.trim(),
+        permissions: index !== "" ? state.employees[index].permissions : ['view_dashboard', 'view_own_result_only']
+      };
+      if (index === "") {
+        if (state.employees.some(e => e.code === empData.code)) {
+          showToast("Mã nhân viên đã tồn tại!", "error");
+          return;
+        }
+        state.employees.push(empData);
+        showToast("Đã thêm nhân sự thành công!");
+      } else {
+        state.employees[index] = empData;
+        showToast("Đã cập nhật nhân sự thành công!");
+      }
+      saveData();
+      closeModal('modal-employee');
+      renderAll();
+    }
+
+    function deleteEmployee(index) {
+      showConfirmModal("Xóa nhân sự", `Bạn có chắc muốn xóa nhân viên ${state.employees[index].name}?`, () => {
+        state.employees.splice(index, 1);
+        saveData();
+        renderAll();
+        showToast("Đã xóa nhân sự.");
+      });
+    }
+
+    function renderDepartments() {
+      const container = document.getElementById('departments-list');
+      container.innerHTML = '';
+      state.departments.forEach((dept, index) => {
+        const count = state.employees.filter(e => e.dept === dept).length;
+        container.innerHTML += `
+          <div class="bg-white/90 dark:bg-slate-900/80 backdrop-blur-xl p-5 rounded-3xl border border-slate-200 dark:border-slate-800 shadow-xl flex justify-between items-center">
+            <div>
+              <h4 class="font-bold text-sm text-slate-900 dark:text-white">${dept}</h4>
+              <p class="text-xs text-slate-500 mt-1">${count} nhân sự thuộc phòng ban</p>
+            </div>
+            <div class="space-x-1">
+              <button onclick="openDepartmentModal(${index})" class="p-2 text-slate-600 dark:text-slate-400 hover:text-emerald-500"><i class="fa-solid fa-pen"></i></button>
+              <button onclick="deleteDepartment(${index})" class="p-2 text-slate-600 dark:text-slate-400 hover:text-rose-500"><i class="fa-solid fa-trash"></i></button>
+            </div>
+          </div>
+        `;
+      });
+    }
+
+    function openDepartmentModal(index = null) {
+      document.getElementById('dept-edit-index').value = index !== null ? index : '';
+      document.getElementById('dept-name').value = index !== null ? state.departments[index] : '';
+      document.getElementById('modal-department').classList.remove('hidden');
+    }
+
+    function handleSaveDepartment(e) {
+      e.preventDefault();
+      const index = document.getElementById('dept-edit-index').value;
+      const name = document.getElementById('dept-name').value.trim();
+      if (index === "") {
+        state.departments.push(name);
+      } else {
+        state.departments[index] = name;
+      }
+      saveData();
+      closeModal('modal-department');
+      renderDepartments();
+      showToast("Đã lưu phòng ban thành công!");
+    }
+
+    function deleteDepartment(index) {
+      showConfirmModal("Xóa phòng ban", `Xóa phòng ban ${state.departments[index]}?`, () => {
+        state.departments.splice(index, 1);
+        saveData();
+        renderDepartments();
+        showToast("Đã xóa phòng ban.");
+      });
+    }
+
+    function renderCriteria() {
+      const tbody = document.getElementById('criteria-tbody');
+      tbody.innerHTML = '';
+      state.criteria.forEach((c) => {
+        tbody.innerHTML += `
+          <tr class="hover:bg-slate-100 dark:hover:bg-slate-800/60">
+            <td class="p-4 font-bold">${c.id}</td>
+            <td class="p-4 font-bold text-slate-900 dark:text-white">${c.name}</td>
+            <td class="p-4 text-center font-extrabold text-emerald-600 dark:text-emerald-400">${c.weight}%</td>
+            <td class="p-4 text-right space-x-1">
+              <button onclick="openCriteriaModal('${c.id}')" class="px-3 py-1.5 bg-slate-200 dark:bg-slate-800 rounded-xl text-xs font-bold">Sửa</button>
+              <button onclick="deleteCriteria('${c.id}')" class="px-3 py-1.5 bg-rose-500/10 text-rose-500 rounded-xl text-xs font-bold">Xóa</button>
+            </td>
+          </tr>
+        `;
+      });
+    }
+
+    function openCriteriaModal(id = null) {
+      document.getElementById('criteria-edit-id').value = id || '';
+      if (id) {
+        const c = state.criteria.find(item => item.id === id);
+        document.getElementById('crit-id').value = c.id;
+        document.getElementById('crit-id').disabled = true;
+        document.getElementById('crit-name').value = c.name;
+        document.getElementById('crit-weight').value = c.weight;
+      } else {
+        document.getElementById('crit-id').value = '';
+        document.getElementById('crit-id').disabled = false;
+        document.getElementById('crit-name').value = '';
+        document.getElementById('crit-weight').value = '';
+      }
+      document.getElementById('modal-criteria').classList.remove('hidden');
+    }
+
+    function handleSaveCriteria(e) {
+      e.preventDefault();
+      const editId = document.getElementById('criteria-edit-id').value;
+      const id = document.getElementById('crit-id').value.trim();
+      const name = document.getElementById('crit-name').value.trim();
+      const weight = parseInt(document.getElementById('crit-weight').value);
+
+      if (editId) {
+        const c = state.criteria.find(item => item.id === editId);
+        c.name = name;
+        c.weight = weight;
+      } else {
+        if (state.criteria.some(item => item.id === id)) {
+          showToast("Mã tiêu chí đã tồn tại!", "error");
+          return;
+        }
+        state.criteria.push({ id, name, weight });
+      }
+      saveData();
+      closeModal('modal-criteria');
+      renderCriteria();
+      showToast("Đã lưu tiêu chí thành công!");
+    }
+
+    function deleteCriteria(id) {
+      showConfirmModal("Xóa tiêu chí", "Bạn có chắc muốn xóa tiêu chí này?", () => {
+        state.criteria = state.criteria.filter(c => c.id !== id);
+        saveData();
+        renderCriteria();
+        showToast("Đã xóa tiêu chí.");
+      });
+    }
+
+    function renderReviewsHeaders() {
+      const head = document.getElementById('review-table-head');
+      let critThs = state.criteria.map(c => `<th class="p-4 text-center">${c.name} (${c.weight}%)</th>`).join('');
+      head.innerHTML = `
+        <tr>
+          <th class="p-4">Thời gian</th>
+          <th class="p-4">Nhân viên</th>
+          <th class="p-4 text-center">Kỳ ĐG</th>
+          ${critThs}
+          <th class="p-4 text-center">Tổng Điểm</th>
+          <th class="p-4 text-right">Thao Tác</th>
+        </tr>
+      `;
+
+      const myHead = document.getElementById('my-review-table-head');
+      myHead.innerHTML = head.innerHTML;
+    }
+
+    function renderReviews() {
+      const tbody = document.getElementById('reviews-tbody');
+      tbody.innerHTML = '';
+      if (state.reviews.length === 0) {
+        tbody.innerHTML = `<tr><td colspan="10" class="p-6 text-center text-slate-500 font-medium">Chưa có bản đánh giá nào.</td></tr>`;
+        return;
+      }
+
+      state.reviews.forEach(r => {
+        const emp = state.employees.find(e => e.code === r.empCode) || { name: r.empCode };
+        let critTds = state.criteria.map(c => `<td class="p-4 text-center font-bold">${r.scores[c.id] || 0}</td>`).join('');
+        tbody.innerHTML += `
+          <tr class="hover:bg-slate-100 dark:hover:bg-slate-800/60">
+            <td class="p-4 font-bold text-emerald-600 dark:text-emerald-400">${r.timestamp || r.date}</td>
+            <td class="p-4 font-bold text-slate-900 dark:text-white">${emp.name} <span class="text-[10px] text-slate-500">(${r.empCode})</span></td>
+            <td class="p-4 text-center uppercase font-bold text-[10px]">${r.period}</td>
+            ${critTds}
+            <td class="p-4 text-center font-extrabold text-emerald-600 dark:text-emerald-400 text-sm">${r.score.toFixed(2)}</td>
+            <td class="p-4 text-right space-x-1">
+              <button onclick="openReviewModal(${r.id})" class="px-3 py-1.5 bg-slate-200 dark:bg-slate-800 rounded-xl text-xs font-bold">Sửa</button>
+              <button onclick="deleteReview(${r.id})" class="px-3 py-1.5 bg-rose-500/10 text-rose-500 rounded-xl text-xs font-bold"><i class="fa-solid fa-trash"></i></button>
+            </td>
+          </tr>
+        `;
+      });
+    }
+
+    function renderMyReviews() {
+      const tbody = document.getElementById('my-reviews-tbody');
+      tbody.innerHTML = '';
+      if (!state.currentUser) return;
+      const myRevs = state.reviews.filter(r => r.empCode === state.currentUser.code);
+
+      if (myRevs.length === 0) {
+        tbody.innerHTML = `<tr><td colspan="10" class="p-6 text-center text-slate-500 font-medium">Bạn chưa có bản đánh giá hiệu suất nào.</td></tr>`;
+        return;
+      }
+
+      myRevs.forEach(r => {
+        let critTds = state.criteria.map(c => `<td class="p-4 text-center font-bold">${r.scores[c.id] || 0}</td>`).join('');
+        tbody.innerHTML += `
+          <tr class="hover:bg-slate-100 dark:hover:bg-slate-800/60">
+            <td class="p-4 font-bold text-emerald-600 dark:text-emerald-400">${r.timestamp || r.date}</td>
+            <td class="p-4 font-bold text-slate-900 dark:text-white">${state.currentUser.name}</td>
+            <td class="p-4 text-center uppercase font-bold text-[10px]">${r.period}</td>
+            ${critTds}
+            <td class="p-4 text-center font-extrabold text-emerald-600 dark:text-emerald-400 text-sm">${r.score.toFixed(2)}</td>
+            <td class="p-4 text-right text-slate-500 italic">${r.note || '-'}</td>
+          </tr>
+        `;
+      });
+    }
+
+    function openReviewModal(id = null) {
+      document.getElementById('review-edit-id').value = id || '';
+      document.getElementById('modal-review-title').innerText = id ? "Chỉnh Sửa Đánh Giá" : "Tạo Đánh Giá Mới";
+      document.getElementById('review-emp-id').innerHTML = state.employees.map(e => `<option value="${e.code}">${e.name} (${e.code})</option>`).join('');
+
+      const container = document.getElementById('dynamic-scores-container');
+      container.innerHTML = '';
+      state.criteria.forEach(c => {
+        container.innerHTML += `
+          <div>
+            <label class="block text-[10px] font-bold uppercase mb-1 text-slate-600 dark:text-slate-400">${c.name} (${c.weight}%)</label>
+            <input type="number" step="0.1" min="0" max="10" id="score-${c.id}" required class="w-full px-3.5 py-2.5 bg-slate-50 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-2xl text-xs text-slate-900 dark:text-slate-100 focus:outline-none font-medium" placeholder="0 - 10">
+          </div>
+        `;
+      });
+
+      if (id) {
+        const r = state.reviews.find(item => item.id === id);
+        document.getElementById('review-emp-id').value = r.empCode;
+        document.getElementById('review-period').value = r.period;
+        document.getElementById('review-note').value = r.note || '';
+        state.criteria.forEach(c => {
+          document.getElementById(`score-${c.id}`).value = r.scores[c.id] || 0;
+        });
+      } else {
+        document.getElementById('review-note').value = '';
+        state.criteria.forEach(c => {
+          document.getElementById(`score-${c.id}`).value = '';
+        });
+      }
+      document.getElementById('modal-review').classList.remove('hidden');
+    }
+
+    function handleSaveReview(e) {
+      e.preventDefault();
+      const editId = document.getElementById('review-edit-id').value;
+      const empCode = document.getElementById('review-emp-id').value;
+      const period = document.getElementById('review-period').value;
+      const note = document.getElementById('review-note').value.trim();
+
+      let scores = {};
+      let totalScore = 0;
+      let totalWeight = 0;
+
+      state.criteria.forEach(c => {
+        let val = parseFloat(document.getElementById(`score-${c.id}`).value) || 0;
+        scores[c.id] = val;
+        totalScore += val * c.weight;
+        totalWeight += c.weight;
+      });
+
+      let finalScore = totalWeight > 0 ? (totalScore / totalWeight) : 0;
+      const timestamp = getCurrentTimestamp();
+      const dateOnly = timestamp.split(' ')[0];
+
+      if (editId) {
+        const r = state.reviews.find(item => item.id == editId);
+        r.empCode = empCode;
+        r.period = period;
+        r.scores = scores;
+        r.score = finalScore;
+        r.note = note;
+        if (!r.editHistory) r.editHistory = [];
+        r.editHistory.push({ time: timestamp, by: state.currentUser ? state.currentUser.name : 'Admin', note: `Cập nhật điểm tổng thành ${finalScore.toFixed(2)}` });
+        showToast("Đã cập nhật bản đánh giá thành công!");
+      } else {
+        const newRev = {
+          id: Date.now(),
+          empCode, period, scores, score: finalScore, note,
+          date: dateOnly, timestamp,
+          editHistory: [
+            { time: timestamp, by: state.currentUser ? state.currentUser.name : 'Admin', note: "Khởi tạo bản đánh giá" }
+          ]
+        };
+        state.reviews.push(newRev);
+        showToast("Đã tạo đánh giá mới thành công!");
+      }
+
+      saveData();
+      closeModal('modal-review');
+      renderAll();
+    }
+
+    function deleteReview(id) {
+      showConfirmModal("Xóa đánh giá", "Bạn có chắc muốn xóa bản đánh giá này?", () => {
+        state.reviews = state.reviews.filter(r => r.id !== id);
+        saveData();
+        renderAll();
+        showToast("Đã xóa bản đánh giá.");
+      });
+    }
+
+    function renderCharts() {
+      const deptCtx = document.getElementById('chart-dept').getContext('2d');
+      const ranksCtx = document.getElementById('chart-ranks').getContext('2d');
+
+      if (chartDeptInstance) chartDeptInstance.destroy();
+      if (chartRanksInstance) chartRanksInstance.destroy();
+
+      let deptLabels = state.departments;
+      let deptScores = deptLabels.map(d => {
+        let emps = state.employees.filter(e => e.dept === d).map(e => e.code);
+        let revs = state.reviews.filter(r => emps.includes(r.empCode));
+        if (revs.length === 0) return 0;
+        return revs.reduce((a, b) => a + b.score, 0) / revs.length;
+      });
+
+      chartDeptInstance = new Chart(deptCtx, {
+        type: 'bar',
+        data: {
+          labels: deptLabels,
+          datasets: [{ label: 'ĐTB Phòng Ban', data: deptScores, backgroundColor: '#10b981', borderRadius: 12 }]
+        },
+        options: { responsive: true, maintainAspectRatio: false }
+      });
+
+      let rankCounts = { A: 0, B: 0, C: 0, D: 0 };
+      state.employees.forEach(emp => {
+        let revs = state.reviews.filter(r => r.empCode === emp.code);
+        if (revs.length > 0) {
+          let avg = revs.reduce((a, b) => a + b.score, 0) / revs.length;
+          if (avg >= 8.5) rankCounts.A++;
+          else if (avg >= 7.0) rankCounts.B++;
+          else if (avg >= 5.0) rankCounts.C++;
+          else rankCounts.D++;
+        }
+      });
+
+      chartRanksInstance = new Chart(ranksCtx, {
+        type: 'doughnut',
+        data: {
+          labels: ['Loại A (Xuất sắc)', 'Loại B (Khá/Tốt)', 'Loại C (Trung bình)', 'Loại D (Yếu)'],
+          datasets: [{ data: [rankCounts.A, rankCounts.B, rankCounts.C, rankCounts.D], backgroundColor: ['#10b981', '#3b82f6', '#f59e0b', '#f43f5e'] }]
+        },
+        options: { responsive: true, maintainAspectRatio: false }
+      });
+    }
+
+    function exportLeaderboardExcel() {
+      if (!hasPermission('export_print_all') && state.currentUser.code !== 'ADMIN') {
+        showToast("Bạn không có quyền xuất Excel tổng!", "error");
+        return;
+      }
+      let csv = "\ufeffHạng,Mã NV,Họ và Tên,Phòng Ban,Số Lượt ĐG,Điểm TB,Xếp Loại\n";
+      filteredLeaderboardData.forEach((item, idx) => {
+        csv += `${idx+1},${item.code},"${item.name}","${item.dept}",${item.count},${item.avgScore.toFixed(2)},"${item.avgScore >= 8.5 ? 'A' : item.avgScore >= 7 ? 'B' : item.avgScore >= 5 ? 'C' : 'D'}"\n`;
+      });
+      downloadCsv(csv, "BangXepHang_DaTuanThanh.csv");
+      showToast("Đã xuất file Excel tổng thành công!");
+    }
+
+    function exportSingleEmployeeExcel(empCode) {
+      if (hasPermission('view_own_result_only') && !hasPermission('view_all_reviews') && state.currentUser.code !== 'ADMIN' && state.currentUser.code !== empCode) {
+        showToast("Bạn chỉ có quyền xuất Excel kết quả của chính mình!", "error");
+        return;
+      }
+      const emp = state.employees.find(e => e.code === empCode);
+      const revs = state.reviews.filter(r => r.empCode === empCode);
+      let csv = `\ufeffBẢNG ĐÁNH GIÁ HIỆU SUẤT - ${emp.name} (${emp.code})\n`;
+      csv += "Thời Gian,Kỳ ĐG,Điểm Tổng,Ghi Chú\n";
+      revs.forEach(r => {
+        csv += `${r.timestamp || r.date},${r.period},${r.score.toFixed(2)},"${r.note || ''}"\n`;
+      });
+      downloadCsv(csv, `NhanVien_${empCode}.csv`);
+      showToast(`Đã xuất Excel cho nhân viên ${emp.name}!`);
+    }
+
+    function downloadCsv(content, filename) {
+      const blob = new Blob([content], { type: 'text/csv;charset=utf-8;' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = filename;
+      a.click();
+      URL.revokeObjectURL(url);
+    }
+
+    function updatePrintPreviewContent() {
+      const companyVal = document.getElementById('print-cfg-company').value;
+      const titleVal = document.getElementById('print-cfg-title').value;
+      const timeVal = document.getElementById('print-cfg-time').value;
+      const sig1Val = document.getElementById('print-cfg-sig1').value;
+      const sig2Val = document.getElementById('print-cfg-sig2').value;
+
+      document.getElementById('preview-print-company').innerText = companyVal;
+      document.getElementById('preview-print-title').innerText = titleVal;
+      document.getElementById('preview-print-time').innerText = "Thời gian: " + timeVal;
+      document.getElementById('preview-sig1').innerText = sig1Val;
+      document.getElementById('preview-sig2').innerText = sig2Val;
+    }
+
+    function openPrintPreviewModal(mode) {
+      if (mode === 'all') {
+        if (!hasPermission('export_print_all') && state.currentUser.code !== 'ADMIN') {
+          showToast("Bạn không có quyền in báo cáo tổng!", "error");
+          return;
+        }
+        selectedEmployeeCodes = filteredLeaderboardData.map(i => i.code);
+      } else if (mode !== 'batch') {
+        if (hasPermission('view_own_result_only') && !hasPermission('view_all_reviews') && state.currentUser.code !== 'ADMIN' && state.currentUser.code !== mode) {
+          showToast("Bạn chỉ có quyền in kết quả của chính mình!", "error");
+          return;
+        }
+        selectedEmployeeCodes = [mode];
+      }
+
+      document.getElementById('print-cfg-company').value = state.companyName;
+      document.getElementById('print-cfg-title').value = "BÁO CÁO XẾP HẠNG HIỆU SUẤT NHÂN SỰ";
+      document.getElementById('print-cfg-time').value = "Toàn bộ thời gian";
+      document.getElementById('print-cfg-sig1').value = "Người lập báo cáo";
+      document.getElementById('print-cfg-sig2').value = "Đại diện Ban Giám Đốc";
+
+      updatePrintPreviewContent();
+      
+      const tbody = document.getElementById('preview-print-tbody');
+      tbody.innerHTML = '';
+
+      let listToPrint = filteredLeaderboardData.filter(i => selectedEmployeeCodes.includes(i.code));
+      listToPrint.forEach((item, idx) => {
+        tbody.innerHTML += `
+          <tr class="border-b border-slate-300">
+            <td class="p-2 border border-slate-300 text-center font-bold">${idx + 1}</td>
+            <td class="p-2 border border-slate-300 font-bold">${item.code}</td>
+            <td class="p-2 border border-slate-300">${item.name}</td>
+            <td class="p-2 border border-slate-300">${item.dept}</td>
+            <td class="p-2 border border-slate-300 text-center">${item.count}</td>
+            <td class="p-2 border border-slate-300 text-center font-bold">${item.avgScore > 0 ? item.avgScore.toJSON ? item.avgScore.toFixed(2) : item.avgScore.toFixed(2) : '-'}</td>
+            <td class="p-2 border border-slate-300 text-right font-bold">${item.avgScore >= 8.5 ? 'A - Xuất Sắc' : item.avgScore >= 7 ? 'B - Khá' : item.avgScore >= 5 ? 'C - TB' : 'D - Yếu'}</td>
+          </tr>
+        `;
+      });
+
+      document.getElementById('modal-print-preview').classList.remove('hidden');
+    }
+  </script>
+</body>
+</html>
